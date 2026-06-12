@@ -1,166 +1,257 @@
 /*
  * data.js — Contenido educativo del juego "Claude Academy".
  *
- * Cada "mundo" (world) corresponde a una categoría de los cursos oficiales
- * de Claude (https://claude.com/resources/courses). Dentro de cada mundo hay:
- *   - lessons[]   : tarjetas de enseñanza breves que se muestran antes de jugar.
- *   - questions[] : preguntas de opción múltiple con explicación.
+ * Cada "mundo" cubre uno o varios cursos oficiales de Claude
+ * (https://claude.com/resources/courses). El contenido sigue los temarios
+ * reales de los cursos:
  *
- * El contenido está pensado para aprender los conceptos clave de los cursos
- * jugando. Las explicaciones refuerzan la respuesta correcta.
+ *  Mundo 1 ← Claude 101 · AI Capabilities and Limitations
+ *  Mundo 2 ← AI Fluency: Framework & Foundations · for Students/Educators/
+ *            Small Businesses/Nonprofits · Teaching AI Fluency
+ *  Mundo 3 ← Building with the Claude API (API básica y features) ·
+ *            Claude Platform 101
+ *  Mundo 4 ← Building with the Claude API (prompt engineering, evals, RAG)
+ *  Mundo 5 ← Building with the Claude API / Platform 101 (tool use, agentes,
+ *            workflows, computer use)
+ *  Mundo 6 ← Claude Code 101 · Claude Code in Action · Introduction to
+ *            Subagents · Introduction to Agent Skills
+ *  Mundo 7 ← Introduction to MCP · MCP: Advanced Topics
+ *  Mundo 8 ← Claude with Amazon Bedrock · Claude with Vertex AI ·
+ *            Introduction to Claude Cowork
+ *
+ * Estructura: lessons[] (tarjetas de teoría) + questions[] (opción múltiple,
+ * la opción correcta siempre se escribe en el índice 0 y se baraja al jugar).
  */
 
 const GAME_DATA = {
   meta: {
     title: "Claude Academy",
     subtitle: "Aprende todos los cursos de Claude jugando",
-    version: "1.0.0",
+    version: "2.0.0",
   },
 
   worlds: [
-    /* ----------------------------------------------------------------- */
-    /* MUNDO 1 — Claude 101 + Capacidades y Límites                       */
-    /* ----------------------------------------------------------------- */
+    /* ================================================================ */
+    /* MUNDO 1 — Fundamentos: Claude 101 + AI Capabilities & Limitations */
+    /* ================================================================ */
     {
       id: "fundamentals",
       name: "Fundamentos de Claude",
       icon: "🌱",
       color: "#7c5cff",
       blurb:
-        "Qué es Claude, cómo es un buen prompt y qué puede (y no puede) hacer un modelo de lenguaje. Basado en 'Claude 101' y 'AI Capabilities and Limitations'.",
+        "Qué es Claude y cómo 'piensa' un modelo generativo: predicción de tokens, conocimiento, memoria de trabajo y steerability. Más proyectos, artifacts y Research en Claude.ai.",
       lessons: [
         {
           title: "¿Qué es Claude?",
           body:
-            "Claude es una familia de modelos de lenguaje grande (LLM) creada por Anthropic. Predice texto a partir de un contexto y se entrena con técnicas de seguridad para ser útil, honesto e inofensivo (helpful, honest, harmless).",
+            "Claude es una familia de modelos de lenguaje grande (LLM) creada por Anthropic y entrenada para ser útil, honesta e inofensiva (helpful, honest, harmless). La familia ofrece equilibrios distintos: Opus es el más capaz, Sonnet equilibra inteligencia y velocidad, y Haiku es el más rápido y económico.",
         },
         {
-          title: "La familia de modelos",
+          title: "Cómo la IA obtiene su 'carácter'",
           body:
-            "Anthropic ofrece variantes optimizadas para distintos equilibrios entre capacidad, velocidad y coste. Opus es el más capaz, Sonnet equilibra inteligencia y velocidad, y Haiku es el más rápido y económico.",
+            "El comportamiento de un modelo no es magia: surge de su entrenamiento con grandes cantidades de texto, del ajuste fino con retroalimentación humana y de las instrucciones (system prompts) que recibe. Por eso dos asistentes sobre el mismo modelo pueden comportarse muy distinto.",
         },
         {
-          title: "Anatomía de un buen prompt",
+          title: "Propiedad 1: Predicción del siguiente token",
           body:
-            "Un prompt eficaz suele incluir: un rol o contexto, una tarea clara, datos de entrada delimitados, y el formato de salida deseado. Ser específico reduce la ambigüedad y mejora el resultado.",
+            "En el fondo, un modelo generativo predice el siguiente fragmento de texto (token) más probable dado todo lo anterior, una y otra vez. Esto explica su fluidez… y también que pueda producir texto plausible pero incorrecto.",
         },
         {
-          title: "Capacidades vs. límites",
+          title: "Propiedad 2: Conocimiento",
           body:
-            "Claude razona, resume, traduce, programa y analiza. Pero tiene una fecha de corte de conocimiento, puede 'alucinar' datos, no accede a Internet por defecto y no tiene estado entre conversaciones independientes.",
+            "El conocimiento del modelo viene de sus datos de entrenamiento y tiene una FECHA DE CORTE: no sabe lo ocurrido después, salvo que se le den herramientas (búsqueda web) o contexto. Cuando 'rellena huecos' con datos inventados pero verosímiles, hablamos de alucinaciones.",
+        },
+        {
+          title: "Propiedad 3: Memoria de trabajo",
+          body:
+            "La 'memoria' del modelo es su VENTANA DE CONTEXTO: todo lo que cabe en la conversación actual. No recuerda conversaciones anteriores por sí solo, y en sesiones muy largas la información puede quedar fuera de la ventana.",
+        },
+        {
+          title: "Propiedad 4: Steerability (dirigibilidad)",
+          body:
+            "El modelo es muy sensible a cómo se le instruye: rol, tono, formato y restricciones cambian la salida. Esto es un superpoder (puedes dirigirlo con precisión) y un riesgo (instrucciones vagas dan resultados vagos). Cuando estas propiedades chocan entre sí surgen los comportamientos 'inesperados'.",
+        },
+        {
+          title: "Claude.ai en la práctica",
+          body:
+            "En la app de Claude puedes organizar el trabajo con PROYECTOS (espacios con instrucciones y conocimiento persistentes), crear ARTIFACTS (documentos, código o mini-apps en un panel aparte), usar SKILLS, conectar herramientas externas y lanzar RESEARCH para investigaciones profundas con fuentes.",
         },
       ],
       questions: [
         {
-          q: "¿Qué tipo de sistema es Claude en esencia?",
+          q: "¿Cuál es el mecanismo fundamental con el que un modelo generativo produce texto?",
           options: [
-            "Un modelo de lenguaje grande que predice texto",
-            "Una base de datos de búsqueda en Internet",
-            "Una hoja de cálculo automatizada",
-            "Un sistema operativo",
+            "Predecir el siguiente token más probable, repetidamente",
+            "Buscar frases exactas en una base de datos",
+            "Copiar respuestas de Internet en tiempo real",
+            "Ejecutar reglas gramaticales programadas a mano",
           ],
           answer: 0,
           explain:
-            "Claude es un LLM: genera texto prediciendo la continuación más probable dado el contexto recibido.",
+            "Los LLM generan texto prediciendo el siguiente token dado el contexto. Eso explica tanto su fluidez como sus errores plausibles.",
         },
         {
-          q: "Ordena de MÁS capaz a más rápido/económico los tamaños de modelo:",
+          q: "¿Qué implica la 'fecha de corte de conocimiento' de un modelo?",
+          options: [
+            "No conoce eventos posteriores a su entrenamiento salvo que se le dé contexto o herramientas",
+            "Deja de funcionar después de esa fecha",
+            "Solo responde preguntas históricas",
+            "Olvida todo cada 24 horas",
+          ],
+          answer: 0,
+          explain:
+            "El conocimiento viene de los datos de entrenamiento. Para información posterior necesita búsqueda web o contexto aportado por ti.",
+        },
+        {
+          q: "La 'memoria de trabajo' de Claude equivale a:",
+          options: [
+            "Su ventana de contexto: lo que cabe en la conversación actual",
+            "Un disco duro donde guarda todas tus charlas",
+            "La memoria RAM de tu ordenador",
+            "Una libreta física en Anthropic",
+          ],
+          answer: 0,
+          explain:
+            "Todo lo que el modelo 'recuerda' debe estar en la ventana de contexto. Entre conversaciones independientes no hay memoria automática.",
+        },
+        {
+          q: "¿Qué es la 'steerability' (dirigibilidad) de un modelo?",
+          options: [
+            "Su sensibilidad a las instrucciones: rol, tono y formato moldean la salida",
+            "Su capacidad de conducir vehículos",
+            "La velocidad a la que responde",
+            "El número de idiomas que habla",
+          ],
+          answer: 0,
+          explain:
+            "Las instrucciones dirigen al modelo con precisión: por eso prompts claros producen resultados mucho mejores que prompts vagos.",
+        },
+        {
+          q: "Una 'alucinación' en IA generativa es:",
+          options: [
+            "Información inventada que suena plausible pero es falsa",
+            "Un error de hardware en el servidor",
+            "Cuando el modelo se niega a responder",
+            "Una imagen generada borrosa",
+          ],
+          answer: 0,
+          explain:
+            "Como el modelo predice texto plausible, puede 'rellenar huecos' con datos falsos pero convincentes. Verifica siempre lo crítico.",
+        },
+        {
+          q: "El 'carácter' de un asistente de IA surge principalmente de:",
+          options: [
+            "Su entrenamiento, el ajuste con retroalimentación humana y sus instrucciones de sistema",
+            "El estado de ánimo del servidor",
+            "La marca del ordenador del usuario",
+            "Un sorteo aleatorio diario",
+          ],
+          answer: 0,
+          explain:
+            "Datos de entrenamiento + ajuste fino + system prompts definen cómo se comporta un asistente sobre un mismo modelo base.",
+        },
+        {
+          q: "Ordena la familia de modelos de MÁS capaz a más rápido/económico:",
           options: [
             "Opus › Sonnet › Haiku",
             "Haiku › Sonnet › Opus",
             "Sonnet › Opus › Haiku",
-            "Todos son idénticos",
+            "Todos son idénticos en capacidad y precio",
           ],
           answer: 0,
           explain:
-            "Opus es el más capaz, Sonnet equilibra inteligencia/velocidad y Haiku es el más rápido y barato.",
+            "Opus maximiza capacidad, Sonnet equilibra inteligencia/velocidad y Haiku prioriza rapidez y coste. Elegir modelo es un tradeoff coste-latencia-capacidad.",
         },
         {
-          q: "¿Cuál de estas es una LIMITACIÓN real de un LLM como Claude?",
+          q: "En Claude.ai, un 'artifact' es:",
           options: [
-            "Puede inventar datos que suenan plausibles (alucinaciones)",
-            "Es incapaz de escribir código",
-            "No puede resumir texto",
-            "No entiende español",
+            "Contenido autónomo (documento, código, mini-app) creado en un panel aparte",
+            "Un error del sistema",
+            "Una copia de seguridad automática",
+            "Un emoji personalizado",
           ],
           answer: 0,
           explain:
-            "Las alucinaciones son un límite conocido: el modelo puede generar afirmaciones falsas con tono seguro. Por eso conviene verificar datos críticos.",
+            "Los artifacts permiten crear y editar contenido sustancial (código, documentos, apps interactivas) separado de la conversación.",
         },
         {
-          q: "¿Qué elemento NO suele ser parte de un buen prompt?",
+          q: "¿Para qué sirven los PROYECTOS en Claude.ai?",
           options: [
-            "El número de serie de tu CPU",
-            "Una tarea clara",
-            "El formato de salida deseado",
-            "Contexto o rol",
+            "Agrupar chats con instrucciones y conocimiento persistentes compartidos",
+            "Comprar espacio de almacenamiento extra",
+            "Programar publicaciones en redes sociales",
+            "Crear copias de seguridad del navegador",
           ],
           answer: 0,
           explain:
-            "Un buen prompt aporta contexto, tarea y formato; detalles de hardware irrelevantes solo añaden ruido.",
+            "Un proyecto da contexto persistente (instrucciones + documentos) a todas las conversaciones que contiene.",
         },
         {
-          q: "Por defecto, ¿qué ocurre entre dos conversaciones independientes con Claude?",
+          q: "El modo 'Research' de Claude sirve para:",
           options: [
-            "No comparte memoria; cada conversación parte de cero",
-            "Recuerda todo de forma permanente",
-            "Guarda tus datos en una cuenta bancaria",
-            "Se conecta con otras personas",
+            "Investigaciones profundas con búsqueda en múltiples fuentes y citas",
+            "Acelerar la generación de emojis",
+            "Entrenar tu propio modelo",
+            "Editar vídeo profesional",
           ],
           answer: 0,
           explain:
-            "El modelo no tiene estado entre conversaciones separadas: todo el contexto debe incluirse en el prompt.",
-        },
-        {
-          q: "El acrónimo de los principios de Anthropic 'HHH' significa:",
-          options: [
-            "Helpful, Honest, Harmless (útil, honesto, inofensivo)",
-            "High, Heavy, Hard",
-            "Hello, Hi, Hey",
-            "Hardware, Hosting, HTTP",
-          ],
-          answer: 0,
-          explain:
-            "Anthropic entrena a Claude para ser útil, honesto e inofensivo, un marco central de su enfoque de seguridad.",
+            "Research realiza investigación en profundidad consultando fuentes y devolviendo un informe con referencias.",
         },
       ],
     },
 
-    /* ----------------------------------------------------------------- */
-    /* MUNDO 2 — AI Fluency (marco 4D)                                    */
-    /* ----------------------------------------------------------------- */
+    /* ================================================================ */
+    /* MUNDO 2 — AI Fluency: marco 4D y sus bucles                       */
+    /* ================================================================ */
     {
       id: "fluency",
       name: "AI Fluency: el marco 4D",
       icon: "🧭",
       color: "#00b3a4",
       blurb:
-        "El marco de Anthropic para colaborar con IA de forma eficaz, eficiente, ética y segura: Delegation, Description, Discernment y Diligence.",
+        "Delegation, Description, Discernment y Diligence; los bucles Description-Discernment y Delegation-Diligence; ser 'el humano en el bucle'. Cubre toda la familia AI Fluency.",
       lessons: [
         {
           title: "¿Qué es la AI Fluency?",
           body:
-            "Es la capacidad de colaborar con sistemas de IA de manera eficaz, eficiente, ética y segura. No va solo de saber usar herramientas, sino de hacerlo con criterio.",
+            "Es la capacidad de colaborar con IA de forma EFICAZ, EFICIENTE, ÉTICA y SEGURA. Anthropic la estructura en cuatro competencias: Delegation, Description, Discernment y Diligence (el marco 4D).",
         },
         {
           title: "1ª D — Delegation (Delegación)",
           body:
-            "Decidir QUÉ tareas dar a la IA y cuáles conservar tú. Implica conocer tus objetivos, las capacidades del sistema y cómo repartir el trabajo entre humano y máquina.",
+            "Decidir QUÉ trabajo hacer con IA y cuál conservar. Implica conocer tu problema (problem awareness), saber qué pueden hacer las plataformas (platform awareness) y repartir tareas entre humano y máquina (task delegation).",
         },
         {
           title: "2ª D — Description (Descripción)",
           body:
-            "Comunicarte con la IA con claridad: explicar el producto que quieres, el proceso a seguir y el rendimiento esperado. Aquí entra el arte del prompting.",
+            "Comunicar con claridad: describir el PRODUCTO que quieres, el PROCESO que debe seguir la IA y el RENDIMIENTO/comportamiento que esperas de ella. Aquí vive el prompting eficaz.",
         },
         {
           title: "3ª D — Discernment (Discernimiento)",
           body:
-            "Evaluar de forma crítica las respuestas de la IA: ¿es correcto el producto?, ¿fue buen el proceso?, ¿el comportamiento es apropiado? No aceptar las salidas a ciegas.",
+            "Evaluar críticamente lo que la IA devuelve, en espejo con la Descripción: ¿el producto es correcto y adecuado?, ¿el proceso de razonamiento fue sólido?, ¿el comportamiento fue apropiado? Nunca aceptar salidas a ciegas.",
         },
         {
           title: "4ª D — Diligence (Diligencia)",
           body:
-            "Actuar de forma responsable y transparente: ser honesto sobre el uso de IA, proteger datos, y asumir la responsabilidad final de los resultados.",
+            "Usar la IA de forma responsable: elegir bien las herramientas y datos (creation diligence), ser transparente sobre el uso de IA (transparency diligence) y responsabilizarte de lo que despliegas o publicas (deployment diligence).",
+        },
+        {
+          title: "El bucle Description-Discernment",
+          body:
+            "Trabajar con IA es iterativo: describes lo que quieres → evalúas el resultado → refinas tu descripción → vuelves a evaluar. Este bucle de refinamiento es el corazón de la colaboración día a día.",
+        },
+        {
+          title: "El bucle Delegation-Diligence",
+          body:
+            "El otro bucle es estratégico: decides qué delegar y mantienes la responsabilidad sobre el resultado final. Delegar nunca significa desentenderse: tú respondes por lo que entregas.",
+        },
+        {
+          title: "El humano en el bucle",
+          body:
+            "El marco aplica a estudiantes (IA como compañera de aprendizaje), docentes (diseño de cursos y evaluación), empresas y ONG (privacidad de datos, análisis, flujos de trabajo). En todos los casos, la persona supervisa, decide y responde: es 'el humano en el bucle'.",
         },
       ],
       questions: [
@@ -170,502 +261,1209 @@ const GAME_DATA = {
             "Delegation, Description, Discernment, Diligence",
             "Data, Design, Deploy, Debug",
             "Define, Draft, Deliver, Done",
-            "Detect, Defend, Deny, Destroy",
+            "Detect, Defend, Deny, Document",
           ],
           answer: 0,
           explain:
             "El marco 4D de Anthropic: Delegación, Descripción, Discernimiento y Diligencia.",
         },
         {
-          q: "Decidir qué tarea hace la IA y cuál haces tú corresponde a la D de:",
-          options: ["Delegation", "Diligence", "Description", "Discernment"],
-          answer: 0,
-          explain:
-            "La Delegación trata de repartir el trabajo entre humano y sistema según objetivos y capacidades.",
-        },
-        {
-          q: "Evaluar críticamente si la respuesta de la IA es correcta es la D de:",
-          options: ["Discernment", "Delegation", "Description", "Diligence"],
-          answer: 0,
-          explain:
-            "El Discernimiento es el juicio crítico sobre producto, proceso y comportamiento de la IA.",
-        },
-        {
-          q: "Ser transparente sobre el uso de IA y proteger los datos pertenece a:",
-          options: ["Diligence", "Description", "Delegation", "Discernment"],
-          answer: 0,
-          explain:
-            "La Diligencia abarca la responsabilidad ética: transparencia, privacidad y rendición de cuentas.",
-        },
-        {
-          q: "Redactar un prompt claro que explique el formato deseado es sobre todo:",
-          options: ["Description", "Delegation", "Diligence", "Discernment"],
-          answer: 0,
-          explain:
-            "La Descripción es comunicar con claridad producto, proceso y rendimiento esperados.",
-        },
-        {
-          q: "La AI Fluency se define como colaborar con IA de forma...",
+          q: "La AI Fluency se define como colaborar con IA de forma…",
           options: [
             "Eficaz, eficiente, ética y segura",
             "Rápida y barata únicamente",
-            "Sin intervención humana",
-            "Solo para programadores",
+            "Totalmente automática y sin supervisión",
+            "Exclusiva para programadores",
           ],
           answer: 0,
           explain:
-            "Es la habilidad de trabajar con IA de manera eficaz, eficiente, ética y segura.",
+            "Las cuatro cualidades (effective, efficient, ethical, safe) definen la fluidez en IA.",
+        },
+        {
+          q: "Decidir qué tareas dar a la IA, conociendo tu problema y las capacidades de la plataforma, es:",
+          options: ["Delegation", "Diligence", "Description", "Discernment"],
+          answer: 0,
+          explain:
+            "La Delegación combina conciencia del problema, de la plataforma y reparto de tareas humano-máquina.",
+        },
+        {
+          q: "Según el marco, una buena DESCRIPCIÓN cubre tres cosas:",
+          options: [
+            "El producto deseado, el proceso a seguir y el comportamiento esperado",
+            "El precio, el plazo y la garantía",
+            "El hardware, el software y la red",
+            "El pasado, el presente y el futuro",
+          ],
+          answer: 0,
+          explain:
+            "Product, process y performance description: qué quieres, cómo abordarlo y cómo debe comportarse la IA.",
+        },
+        {
+          q: "Evaluar críticamente si la salida de la IA es correcta y su razonamiento sólido es:",
+          options: ["Discernment", "Delegation", "Description", "Diligence"],
+          answer: 0,
+          explain:
+            "El Discernimiento evalúa producto, proceso y comportamiento — el espejo crítico de la Descripción.",
+        },
+        {
+          q: "Ser transparente sobre el uso de IA y asumir la responsabilidad de lo que publicas pertenece a:",
+          options: ["Diligence", "Description", "Delegation", "Discernment"],
+          answer: 0,
+          explain:
+            "La Diligencia incluye creation, transparency y deployment diligence: uso responsable de principio a fin.",
+        },
+        {
+          q: "El bucle Description-Discernment consiste en:",
+          options: [
+            "Describir → evaluar el resultado → refinar la descripción → repetir",
+            "Descargar → instalar → ejecutar → desinstalar",
+            "Preguntar una sola vez y aceptar la respuesta",
+            "Copiar y pegar sin leer",
+          ],
+          answer: 0,
+          explain:
+            "La colaboración con IA es iterativa: cada evaluación alimenta una descripción mejor.",
+        },
+        {
+          q: "'Delegar a la IA nunca significa desentenderse del resultado.' Esto resume el bucle:",
+          options: [
+            "Delegation-Diligence",
+            "Description-Discernment",
+            "Debug-Deploy",
+            "Drag-and-Drop",
+          ],
+          answer: 0,
+          explain:
+            "Decides qué delegar (Delegation) pero mantienes la responsabilidad final (Diligence).",
+        },
+        {
+          q: "Una ONG quiere analizar datos de donantes con IA. Según el curso de nonprofits, ¿qué debe considerar PRIMERO?",
+          options: [
+            "La privacidad y el tratamiento adecuado de los datos sensibles",
+            "Qué tipografía usar en el informe",
+            "Comprar más ordenadores",
+            "Nada: subir todo cuanto antes",
+          ],
+          answer: 0,
+          explain:
+            "El bucle Delegation-Diligence pone la privacidad y el manejo de datos al frente antes de delegar análisis a la IA.",
+        },
+        {
+          q: "Ser 'el humano en el bucle' significa:",
+          options: [
+            "Supervisar, decidir y responder por el trabajo hecho con IA",
+            "Dejar que la IA tome todas las decisiones",
+            "Trabajar sin ninguna herramienta digital",
+            "Repetir literalmente lo que dice la IA",
+          ],
+          answer: 0,
+          explain:
+            "La persona mantiene el juicio y la responsabilidad final: la IA amplifica, no sustituye, tu criterio.",
+        },
+        {
+          q: "Para EVALUAR la AI Fluency de estudiantes, el curso 'Teaching AI Fluency' propone:",
+          options: [
+            "Diseñar tareas que evalúen las 4D y sus bucles, no prohibir la IA sin más",
+            "Eliminar todos los exámenes",
+            "Evaluar solo la velocidad de tecleo",
+            "Usar detectores de IA como única medida",
+          ],
+          answer: 0,
+          explain:
+            "El curso enseña a diseñar assignments que evidencien delegación, descripción, discernimiento y diligencia en cada disciplina.",
         },
       ],
     },
 
-    /* ----------------------------------------------------------------- */
-    /* MUNDO 3 — Building with the Claude API                             */
-    /* ----------------------------------------------------------------- */
+    /* ================================================================ */
+    /* MUNDO 3 — La Claude API: fundamentos y features                   */
+    /* ================================================================ */
     {
       id: "api",
-      name: "Construir con la Claude API",
+      name: "La Claude API: fundamentos",
       icon: "🔌",
       color: "#ff7a45",
       blurb:
-        "La Messages API: mensajes, roles, system prompt, tokens, temperatura, tool use, streaming, visión y prompt caching.",
+        "La Messages API: peticiones, multi-turno, system prompts, tokens, temperature, streaming, datos estructurados, visión, PDF, citations, extended thinking y prompt caching.",
       lessons: [
         {
-          title: "La Messages API",
+          title: "Tu primera petición",
           body:
-            "Las peticiones envían una lista de 'messages' con roles 'user' y 'assistant' que se alternan. El modelo responde con un nuevo mensaje del rol 'assistant'.",
+            "Para usar la API necesitas una API key. Cada petición indica el modelo, un máximo de tokens y una lista de 'messages' con roles 'user' y 'assistant' que se alternan. La respuesta es un nuevo mensaje del asistente.",
         },
         {
-          title: "System prompt",
+          title: "La API no tiene memoria",
           body:
-            "El parámetro 'system' fija el rol, el tono y las reglas globales del asistente. Va aparte de la lista de mensajes y guía todo el comportamiento de la conversación.",
+            "La API es STATELESS: no recuerda peticiones anteriores. Para una conversación multi-turno debes reenviar el historial completo de mensajes en cada llamada. Tu aplicación es la dueña de la memoria.",
         },
         {
-          title: "Tokens y max_tokens",
+          title: "System prompts",
           body:
-            "El texto se descompone en tokens (fragmentos de palabra). Se factura por tokens de entrada y de salida. 'max_tokens' limita cuántos tokens puede generar la respuesta.",
+            "El parámetro 'system' fija rol, tono y reglas globales del asistente, separado de la lista de mensajes. Es la herramienta más potente para dar identidad y límites consistentes a tu aplicación.",
         },
         {
-          title: "Temperature",
+          title: "Tokens y costes",
           body:
-            "Controla la aleatoriedad: cerca de 0 = respuestas deterministas y enfocadas; valores más altos = más variadas y creativas. Para tareas factuales se suele bajar.",
+            "El texto se trocea en tokens (fragmentos de palabra). Se factura por tokens de ENTRADA y de SALIDA, y 'max_tokens' limita la longitud de la respuesta. Controlar tokens es controlar coste y latencia.",
         },
         {
-          title: "Tool use (function calling)",
+          title: "Temperature y streaming",
           body:
-            "Defines herramientas con un JSON schema. Claude puede devolver un 'tool_use' pidiendo ejecutar una; tu código la ejecuta y devuelve un 'tool_result' para que Claude continúe.",
+            "'temperature' regula la aleatoriedad: baja (≈0) para tareas factuales y consistentes, alta para creatividad. Con STREAMING recibes la respuesta token a token (eventos SSE), mejorando la experiencia percibida.",
         },
         {
-          title: "Streaming, visión y caching",
+          title: "Datos estructurados",
           body:
-            "Con streaming recibes la respuesta token a token (SSE). Claude es multimodal: acepta imágenes además de texto. El 'prompt caching' reutiliza prefijos largos para abaratar y acelerar llamadas repetidas.",
+            "Para obtener JSON fiable: pide el formato explícitamente y usa el 'prefill' — empezar tú el turno del asistente (p. ej. con '{') para forzar que continúe en ese formato, o usa herramientas con schema.",
+        },
+        {
+          title: "Multimodal: imágenes, PDF y citations",
+          body:
+            "Claude acepta imágenes y PDF como entrada para analizarlos. La función de CITATIONS permite que las respuestas referencien los fragmentos exactos de los documentos fuente, ideal para resultados verificables.",
+        },
+        {
+          title: "Extended thinking",
+          body:
+            "Con el razonamiento extendido, el modelo 'piensa' paso a paso antes de responder, usando un presupuesto de tokens de razonamiento. Mejora problemas complejos (matemáticas, lógica, planificación) a cambio de más tokens.",
+        },
+        {
+          title: "Prompt caching",
+          body:
+            "El prompt caching reutiliza prefijos largos y estables (instrucciones, documentos) entre llamadas, reduciendo coste y latencia. Regla clave: el contenido cacheado va AL PRINCIPIO y debe ser idéntico entre llamadas; cualquier cambio invalida la caché desde ese punto.",
         },
       ],
       questions: [
         {
-          q: "En la Messages API, ¿qué dos roles se alternan en la lista 'messages'?",
+          q: "La Claude API es 'stateless'. ¿Qué significa para una conversación multi-turno?",
           options: [
-            "'user' y 'assistant'",
-            "'admin' y 'guest'",
-            "'client' y 'server'",
-            "'human' y 'robot'",
+            "Debes reenviar el historial completo de mensajes en cada petición",
+            "La API recuerda todo automáticamente",
+            "Solo se permite una pregunta por día",
+            "Las conversaciones se guardan en tu disco duro",
           ],
           answer: 0,
           explain:
-            "Los mensajes alternan roles 'user' y 'assistant'; el rol 'system' va en un parámetro aparte.",
+            "La API no guarda estado entre llamadas: tu aplicación gestiona y reenvía el historial.",
         },
         {
           q: "¿Para qué sirve el parámetro 'system'?",
           options: [
             "Fijar rol, tono y reglas globales del asistente",
-            "Almacenar la respuesta final",
-            "Definir el color de la interfaz",
-            "Conectar con la base de datos",
+            "Elegir el sistema operativo del servidor",
+            "Definir la contraseña de la API",
+            "Activar el modo oscuro",
           ],
           answer: 0,
           explain:
-            "El system prompt establece instrucciones de alto nivel que guían toda la conversación.",
+            "El system prompt da identidad y límites consistentes a toda la conversación, separado de los mensajes.",
         },
         {
-          q: "¿Qué hace 'max_tokens' en una petición?",
+          q: "¿Cómo se factura el uso de la API?",
           options: [
-            "Limita cuántos tokens puede generar la respuesta",
-            "Define la temperatura del modelo",
-            "Indica el idioma de salida",
-            "Cuenta las palabras del system prompt",
+            "Por tokens de entrada y de salida procesados",
+            "Por minutos de conexión",
+            "Por número de letras mayúsculas",
+            "Tarifa plana ilimitada siempre",
           ],
           answer: 0,
           explain:
-            "'max_tokens' acota la longitud máxima de la salida generada por el modelo.",
+            "Se paga por tokens de entrada + salida; por eso gestionar el contexto y max_tokens controla el coste.",
         },
         {
-          q: "Para una tarea factual donde quieres salidas consistentes, deberías usar una temperature...",
-          options: [
-            "Baja (cercana a 0)",
-            "Muy alta",
-            "Negativa",
-            "Igual a max_tokens",
-          ],
+          q: "Para una tarea factual que requiere salidas consistentes, conviene una temperature…",
+          options: ["Baja, cercana a 0", "Muy alta", "Negativa", "Aleatoria en cada llamada"],
           answer: 0,
           explain:
-            "Temperatura baja reduce la aleatoriedad y produce respuestas más deterministas y enfocadas.",
+            "Temperature baja = menos aleatoriedad = respuestas más deterministas. Alta para creatividad.",
         },
         {
-          q: "En tool use, ¿qué devuelve TU código tras ejecutar la herramienta que pidió Claude?",
+          q: "¿Qué aporta el STREAMING de respuestas?",
           options: [
-            "Un bloque 'tool_result' con la salida",
-            "Un nuevo system prompt",
-            "Un error 404 obligatorio",
-            "Nada; Claude lo ejecuta solo",
+            "Recibir la respuesta token a token, mejorando la latencia percibida",
+            "Respuestas con vídeo en alta definición",
+            "Eliminar el coste de la petición",
+            "Duplicar la inteligencia del modelo",
           ],
           answer: 0,
           explain:
-            "Claude emite 'tool_use'; tu aplicación ejecuta la función y responde con 'tool_result' para que Claude prosiga.",
+            "Con server-sent events el usuario ve el texto aparecer en tiempo real en lugar de esperar la respuesta completa.",
         },
         {
-          q: "¿Cómo se definen las herramientas que Claude puede invocar?",
+          q: "Un truco eficaz para forzar que Claude responda en JSON es:",
           options: [
-            "Con un JSON schema que describe nombre, descripción y parámetros",
-            "Con un archivo de imagen",
-            "Escribiéndolas en el system prompt en prosa libre",
-            "No se pueden definir herramientas",
+            "'Prefill': empezar tú el turno del asistente con '{'",
+            "Escribir el prompt en mayúsculas",
+            "Subir la temperature al máximo",
+            "Repetir la pregunta tres veces",
           ],
           answer: 0,
           explain:
-            "Cada herramienta se describe con un esquema (nombre, descripción y JSON schema de entradas) para que Claude sepa cuándo y cómo usarla.",
+            "Si pre-rellenas el inicio de la respuesta del asistente, el modelo continúa desde ahí, garantizando el arranque del formato.",
         },
         {
-          q: "El 'prompt caching' sirve principalmente para:",
+          q: "El 'extended thinking' (razonamiento extendido) consiste en:",
           options: [
-            "Reutilizar prefijos largos y abaratar/acelerar llamadas repetidas",
-            "Cifrar la respuesta",
-            "Traducir automáticamente",
-            "Aumentar la temperatura",
+            "Dejar que el modelo razone paso a paso con un presupuesto de tokens antes de responder",
+            "Alargar la respuesta con relleno",
+            "Pensar en voz alta del desarrollador",
+            "Una pausa de 10 minutos del servidor",
           ],
           answer: 0,
           explain:
-            "Cachear un prefijo grande (p. ej. instrucciones o documentos) evita reprocesarlo en cada llamada, reduciendo coste y latencia.",
+            "El modelo dedica tokens de razonamiento a problemas complejos (lógica, matemáticas, planificación) antes de dar la respuesta final.",
         },
         {
-          q: "Que Claude sea 'multimodal' significa que puede recibir:",
+          q: "Regla clave del PROMPT CACHING:",
           options: [
-            "Texto e imágenes como entrada",
-            "Solo números",
-            "Solo audio",
-            "Únicamente código",
+            "El contenido estable va al principio y debe ser idéntico entre llamadas",
+            "Solo funciona con prompts de una palabra",
+            "La caché dura un año",
+            "Hay que pagar el doble para activarla",
           ],
           answer: 0,
           explain:
-            "Los modelos multimodales aceptan imágenes además de texto, permitiendo análisis visual.",
+            "Se cachea un prefijo: cualquier cambio en él invalida la caché desde ese punto. Por eso lo estable va primero.",
+        },
+        {
+          q: "La función de CITATIONS sirve para:",
+          options: [
+            "Que las respuestas referencien los fragmentos exactos de los documentos fuente",
+            "Multar al usuario por mal uso",
+            "Traducir citas célebres",
+            "Generar bibliografías inventadas",
+          ],
+          answer: 0,
+          explain:
+            "Citations ancla las afirmaciones del modelo a pasajes concretos de tus documentos: respuestas verificables.",
+        },
+        {
+          q: "¿Qué tipos de archivo puede analizar Claude directamente como entrada?",
+          options: [
+            "Imágenes y PDF, además de texto",
+            "Solo archivos .txt",
+            "Únicamente hojas de cálculo",
+            "Solo audio y vídeo",
+          ],
+          answer: 0,
+          explain:
+            "Claude es multimodal: procesa imágenes y documentos PDF, lo que habilita análisis visual y de documentos.",
+        },
+        {
+          q: "Según Claude Platform 101, elegir entre Opus, Sonnet y Haiku es un equilibrio entre:",
+          options: [
+            "Capacidad, latencia y coste",
+            "Color, tamaño y peso",
+            "HTML, CSS y JavaScript",
+            "Norte, sur y este",
+          ],
+          answer: 0,
+          explain:
+            "Cada modelo ofrece un tradeoff distinto: más capacidad suele implicar más coste y latencia. Elige según la tarea.",
         },
       ],
     },
 
-    /* ----------------------------------------------------------------- */
-    /* MUNDO 4 — Claude Code, subagents y agent skills                    */
-    /* ----------------------------------------------------------------- */
+    /* ================================================================ */
+    /* MUNDO 4 — Prompt engineering, evals y RAG                         */
+    /* ================================================================ */
+    {
+      id: "prompting",
+      name: "Prompting, evals y RAG",
+      icon: "✍️",
+      color: "#e64980",
+      blurb:
+        "Técnicas de prompt engineering (claridad, XML tags, ejemplos), evaluación sistemática de prompts y Retrieval Augmented Generation: chunking, embeddings, BM25 y reranking.",
+      lessons: [
+        {
+          title: "Claro, directo y específico",
+          body:
+            "La regla nº1 del prompting: di exactamente lo que quieres. Especifica audiencia, longitud, formato y criterios de éxito. Trata a Claude como a un colaborador brillante pero nuevo en tu equipo: necesita contexto.",
+        },
+        {
+          title: "Estructura con XML tags",
+          body:
+            "Usa etiquetas tipo <documento>, <instrucciones> o <ejemplo> para separar instrucciones de datos. Claude está entrenado para respetar esa estructura, y así evitas que confunda tus datos con tus órdenes.",
+        },
+        {
+          title: "Ejemplos (few-shot / multishot)",
+          body:
+            "Mostrar 2-3 ejemplos de entrada→salida deseada es de las técnicas más potentes: el modelo imita el patrón, el tono y el formato de tus ejemplos con mucha más fiabilidad que con descripciones abstractas.",
+        },
+        {
+          title: "¿Por qué evaluar prompts?",
+          body:
+            "Cambiar un prompt 'a ojo' es arriesgado: puede mejorar un caso y romper diez. Una EVAL es un conjunto de casos de prueba que puntúa el rendimiento del prompt de forma sistemática y repetible.",
+        },
+        {
+          title: "El workflow de evaluación",
+          body:
+            "Flujo típico: 1) generar un dataset de casos de prueba, 2) ejecutar el prompt sobre cada caso, 3) calificar las salidas, 4) iterar el prompt y repetir. Así las mejoras se miden, no se intuyen.",
+        },
+        {
+          title: "Calificación por código vs. por modelo",
+          body:
+            "CODE-BASED grading: comprobaciones objetivas y programables (¿es JSON válido?, ¿contiene la cifra correcta?). MODEL-BASED grading: otro modelo juzga cualidades subjetivas (tono, utilidad, calidad). Suelen combinarse.",
+        },
+        {
+          title: "RAG: dar a Claude tus datos",
+          body:
+            "Retrieval Augmented Generation: en lugar de meter TODO en el prompt, recuperas solo los fragmentos relevantes de tu base de conocimiento y los añades al contexto. Primero se trocean los documentos (CHUNKING).",
+        },
+        {
+          title: "Embeddings y búsqueda semántica",
+          body:
+            "Un embedding convierte texto en un vector numérico que captura su significado: textos con significado parecido quedan cerca en el espacio vectorial. Así se recupera por SIGNIFICADO, no solo por palabras exactas.",
+        },
+        {
+          title: "BM25, búsqueda híbrida y reranking",
+          body:
+            "BM25 es búsqueda LÉXICA (palabras clave exactas): complementa a la semántica, que puede fallar con términos técnicos o códigos. Los pipelines combinan ambas (búsqueda híbrida) y RERANKEAN los resultados para quedarse con lo mejor.",
+        },
+      ],
+      questions: [
+        {
+          q: "Tu prompt 'escribe algo sobre ventas' da malos resultados. ¿Cuál es la PRIMERA mejora según el curso?",
+          options: [
+            "Ser claro y específico: audiencia, formato, longitud y objetivo",
+            "Subir la temperature",
+            "Repetir la petición cinco veces",
+            "Cambiar de idioma",
+          ],
+          answer: 0,
+          explain:
+            "'Being clear and direct' y 'being specific' son las primeras técnicas: la ambigüedad es la causa nº1 de malos resultados.",
+        },
+        {
+          q: "¿Para qué se usan las etiquetas XML en un prompt?",
+          options: [
+            "Separar instrucciones de datos para que no se confundan",
+            "Hacer el prompt más bonito",
+            "Comprimir el texto",
+            "Activar funciones secretas",
+          ],
+          answer: 0,
+          explain:
+            "Etiquetas como <documento> o <instrucciones> delimitan secciones; Claude respeta esa estructura.",
+        },
+        {
+          q: "La técnica de dar 2-3 ejemplos de entrada→salida en el prompt se llama:",
+          options: [
+            "Few-shot / multishot prompting",
+            "Overclocking",
+            "Tokenización",
+            "Hard-coding",
+          ],
+          answer: 0,
+          explain:
+            "Los ejemplos enseñan el patrón deseado: el modelo imita formato y tono con gran fiabilidad.",
+        },
+        {
+          q: "¿Cuál es el orden correcto del workflow de evaluación de prompts?",
+          options: [
+            "Generar dataset → ejecutar el prompt → calificar salidas → iterar",
+            "Publicar → rezar → esperar quejas → arreglar",
+            "Calificar → ejecutar → borrar → empezar",
+            "Iterar → iterar → iterar sin medir nada",
+          ],
+          answer: 0,
+          explain:
+            "Las evals hacen del prompting una disciplina medible: dataset, ejecución, calificación e iteración.",
+        },
+        {
+          q: "Verificar con un script que la salida es JSON válido y contiene los campos correctos es:",
+          options: [
+            "Code-based grading (calificación por código)",
+            "Model-based grading",
+            "Vibe-based grading",
+            "Streaming",
+          ],
+          answer: 0,
+          explain:
+            "Las comprobaciones objetivas y programables son code-based; las subjetivas (tono, calidad) son model-based.",
+        },
+        {
+          q: "¿Cuándo conviene el MODEL-based grading?",
+          options: [
+            "Para juzgar cualidades subjetivas como tono, claridad o utilidad",
+            "Para comprobar si un número es par",
+            "Para validar sintaxis JSON",
+            "Nunca: está prohibido",
+          ],
+          answer: 0,
+          explain:
+            "Un modelo juez evalúa bien lo que no se puede expresar como regla de código: calidad, tono, adecuación.",
+        },
+        {
+          q: "¿Qué es RAG (Retrieval Augmented Generation)?",
+          options: [
+            "Recuperar los fragmentos relevantes de tus datos y añadirlos al prompt",
+            "Entrenar el modelo desde cero con tus datos",
+            "Un formato de imagen comprimida",
+            "Un tipo de virus informático",
+          ],
+          answer: 0,
+          explain:
+            "RAG conecta al modelo con tu conocimiento: se recupera solo lo relevante y se inyecta como contexto.",
+        },
+        {
+          q: "El 'chunking' en un pipeline RAG es:",
+          options: [
+            "Trocear los documentos en fragmentos manejables para indexarlos",
+            "Borrar documentos antiguos",
+            "Cifrar la base de datos",
+            "Comprimir imágenes",
+          ],
+          answer: 0,
+          explain:
+            "Los documentos se dividen en chunks; la estrategia de troceado afecta mucho a la calidad de la recuperación.",
+        },
+        {
+          q: "Un EMBEDDING es:",
+          options: [
+            "Un vector numérico que captura el significado de un texto",
+            "Un archivo adjunto de correo",
+            "Una etiqueta HTML",
+            "Una contraseña cifrada",
+          ],
+          answer: 0,
+          explain:
+            "Textos con significado similar producen vectores cercanos: es la base de la búsqueda semántica.",
+        },
+        {
+          q: "¿Por qué combinar BM25 con búsqueda semántica (búsqueda híbrida)?",
+          options: [
+            "BM25 acierta con términos exactos y códigos donde la semántica puede fallar",
+            "Porque BM25 es más bonito",
+            "Para gastar más dinero",
+            "No tiene sentido combinarlas",
+          ],
+          answer: 0,
+          explain:
+            "La búsqueda léxica (palabras clave) y la semántica (significado) se complementan; el reranking elige lo mejor de ambas.",
+        },
+        {
+          q: "El paso de 'reranking' en un pipeline RAG multi-índice sirve para:",
+          options: [
+            "Reordenar los resultados combinados y quedarse con los más relevantes",
+            "Renombrar los archivos del proyecto",
+            "Reiniciar el servidor",
+            "Aumentar la temperatura del modelo",
+          ],
+          answer: 0,
+          explain:
+            "Tras combinar resultados de varias búsquedas, un reranker los puntúa de nuevo para maximizar la relevancia del contexto final.",
+        },
+      ],
+    },
+
+    /* ================================================================ */
+    /* MUNDO 5 — Tool use, agentes y workflows                           */
+    /* ================================================================ */
+    {
+      id: "agents",
+      name: "Tool use y agentes",
+      icon: "🤖",
+      color: "#f59f00",
+      blurb:
+        "Cómo Claude usa herramientas (JSON Schema, tool_use/tool_result), el agent loop, workflows vs. agentes (chaining, routing, parallelization), herramientas integradas y computer use.",
+      lessons: [
+        {
+          title: "Definir herramientas",
+          body:
+            "Una herramienta se define con nombre, descripción y un JSON SCHEMA de sus parámetros. La descripción es crucial: es lo que Claude lee para decidir CUÁNDO y CÓMO usar cada herramienta.",
+        },
+        {
+          title: "El ciclo tool_use → tool_result",
+          body:
+            "Claude no ejecuta nada: cuando decide usar una herramienta devuelve un bloque 'tool_use' con los argumentos. TU código la ejecuta y responde con un bloque 'tool_result'. Claude continúa razonando con ese resultado.",
+        },
+        {
+          title: "El agent loop",
+          body:
+            "Un agente es un bucle: el modelo observa el estado → decide la siguiente acción (herramienta) → recibe el resultado → repite hasta completar el objetivo. La inteligencia está en que el MODELO decide cada paso.",
+        },
+        {
+          title: "Workflows: chaining, routing, parallelization",
+          body:
+            "Los WORKFLOWS orquestan LLMs con pasos predefinidos por código: CHAINING (salida de un paso alimenta al siguiente), ROUTING (clasificar la entrada y derivarla al manejador adecuado) y PARALLELIZATION (subtareas simultáneas que luego se combinan).",
+        },
+        {
+          title: "¿Workflow o agente?",
+          body:
+            "Regla práctica: si la tarea es predecible y bien definida, usa un workflow (más barato, fiable y depurable). Si requiere flexibilidad y decisiones dinámicas según resultados intermedios, usa un agente.",
+        },
+        {
+          title: "Herramientas integradas",
+          body:
+            "La plataforma ofrece herramientas listas para usar: búsqueda web (información actual), ejecución de código en sandbox, web fetch, y el text editor tool para modificar archivos. Las Skills empaquetan procedimientos reutilizables.",
+        },
+        {
+          title: "Computer use",
+          body:
+            "Con computer use, Claude maneja un ordenador como una persona: observa capturas de pantalla y emite acciones de ratón y teclado. Útil para automatizar interfaces sin API, siempre dentro de un entorno controlado.",
+        },
+      ],
+      questions: [
+        {
+          q: "¿Cómo se define una herramienta para Claude?",
+          options: [
+            "Nombre, descripción y un JSON Schema de sus parámetros",
+            "Un archivo de imagen con capturas",
+            "Una hoja de cálculo",
+            "No se pueden definir herramientas",
+          ],
+          answer: 0,
+          explain:
+            "El JSON Schema describe los parámetros; la descripción le dice a Claude cuándo conviene usarla.",
+        },
+        {
+          q: "Claude emite un bloque 'tool_use'. ¿Quién ejecuta realmente la herramienta?",
+          options: [
+            "Tu código: la ejecuta y devuelve un 'tool_result'",
+            "Claude la ejecuta internamente en sus servidores",
+            "El navegador del usuario automáticamente",
+            "Nadie: es decorativo",
+          ],
+          answer: 0,
+          explain:
+            "Claude solo PIDE la acción con argumentos; tu aplicación la ejecuta y le devuelve el resultado para que continúe.",
+        },
+        {
+          q: "El 'agent loop' consiste en:",
+          options: [
+            "Observar → decidir acción → ejecutar herramienta → ver resultado → repetir hasta lograr el objetivo",
+            "Repetir el mismo prompt para siempre",
+            "Un bucle infinito de errores",
+            "Reiniciar el modelo cada minuto",
+          ],
+          answer: 0,
+          explain:
+            "La esencia de un agente: el modelo decide dinámicamente cada paso en función de los resultados anteriores.",
+        },
+        {
+          q: "En un workflow, clasificar la petición entrante y enviarla al manejador adecuado se llama:",
+          options: ["Routing", "Chaining", "Caching", "Chunking"],
+          answer: 0,
+          explain:
+            "Routing deriva cada entrada al prompt o flujo especializado que mejor la atiende.",
+        },
+        {
+          q: "Encadenar pasos donde la salida de uno alimenta al siguiente es:",
+          options: ["Chaining", "Routing", "Parallelization", "Reranking"],
+          answer: 0,
+          explain:
+            "Prompt chaining descompone la tarea en pasos secuenciales, cada uno más simple y verificable.",
+        },
+        {
+          q: "Dividir una tarea en subtareas simultáneas y combinar sus resultados es:",
+          options: ["Parallelization", "Chaining", "Routing", "Streaming"],
+          answer: 0,
+          explain:
+            "La paralelización acelera tareas independientes (p. ej. evaluar varios documentos a la vez) y agrega los resultados.",
+        },
+        {
+          q: "¿Cuándo conviene un WORKFLOW en lugar de un agente?",
+          options: [
+            "Cuando la tarea es predecible y bien definida",
+            "Cuando no sabes en absoluto qué pasos harán falta",
+            "Cuando quieres gastar más tokens",
+            "Nunca: los agentes siempre son mejores",
+          ],
+          answer: 0,
+          explain:
+            "Workflows con pasos fijos son más baratos, fiables y depurables; los agentes brillan cuando hace falta decidir dinámicamente.",
+        },
+        {
+          q: "'Computer use' permite a Claude:",
+          options: [
+            "Manejar un ordenador viendo capturas y emitiendo acciones de ratón/teclado",
+            "Comprar ordenadores online",
+            "Reparar hardware físicamente",
+            "Aumentar la RAM del servidor",
+          ],
+          answer: 0,
+          explain:
+            "Claude observa la pantalla y actúa como un usuario: útil para automatizar interfaces sin API, en entornos controlados.",
+        },
+        {
+          q: "¿Qué herramienta integrada usarías para que Claude conozca información posterior a su fecha de corte?",
+          options: [
+            "La búsqueda web (web search)",
+            "El text editor tool",
+            "El prompt caching",
+            "La temperature",
+          ],
+          answer: 0,
+          explain:
+            "Web search da acceso a información actual, compensando la fecha de corte del entrenamiento.",
+        },
+        {
+          q: "Si defines varias herramientas, ¿cómo elige Claude cuál usar?",
+          options: [
+            "Leyendo sus descripciones y eligiendo la que encaja con la tarea",
+            "Siempre usa la primera de la lista",
+            "Las usa todas a la vez sin criterio",
+            "Por orden alfabético",
+          ],
+          answer: 0,
+          explain:
+            "Por eso las descripciones claras y específicas de cada herramienta son la clave de un buen tool use.",
+        },
+      ],
+    },
+
+    /* ================================================================ */
+    /* MUNDO 6 — Claude Code, subagentes y skills                        */
+    /* ================================================================ */
     {
       id: "claudecode",
       name: "Claude Code en acción",
       icon: "⌨️",
       color: "#2f9e44",
       blurb:
-        "El asistente de programación en la terminal: contexto del repo, subagentes, agent skills, slash commands y hooks.",
+        "El agente de programación: explore→plan→code→commit, gestión de contexto, CLAUDE.md, comandos personalizados, subagentes, skills, hooks, MCP, GitHub y el SDK.",
       lessons: [
         {
           title: "¿Qué es Claude Code?",
           body:
-            "Es un agente de codificación que vive en la terminal (y en IDE/web). Lee tu repositorio, edita archivos, ejecuta comandos y trabaja en tareas de ingeniería de forma autónoma con tu permiso.",
+            "Un agente de codificación que vive en tu terminal (también IDE, escritorio y web). Funciona con el bucle agéntico: lee tu repo, edita archivos y ejecuta comandos mediante herramientas, siempre bajo un sistema de PERMISOS que tú controlas.",
         },
         {
-          title: "CLAUDE.md y contexto",
+          title: "El workflow explore → plan → code → commit",
           body:
-            "Un archivo CLAUDE.md en el repo da contexto persistente: convenciones, comandos de build/test y arquitectura. Claude lo lee para alinear su trabajo con tu proyecto.",
+            "El patrón recomendado: primero EXPLORAR el código relevante, luego PLANIFICAR el enfoque (y revisarlo), después IMPLEMENTAR, y finalmente COMMITEAR. Saltarse la exploración y el plan es la receta para resultados mediocres.",
+        },
+        {
+          title: "Gestión del contexto",
+          body:
+            "La ventana de contexto es finita: usa /clear para empezar de cero entre tareas y /compact para resumir la conversación conservando lo esencial. Mantener el contexto limpio y relevante mejora directamente la calidad.",
+        },
+        {
+          title: "CLAUDE.md: memoria del proyecto",
+          body:
+            "Un archivo CLAUDE.md en el repo da contexto persistente: convenciones, comandos de build/test y arquitectura. Claude lo lee en cada sesión: es la 'memoria del proyecto' que evita repetir instrucciones.",
+        },
+        {
+          title: "Comandos personalizados",
+          body:
+            "Los custom slash commands son prompts reutilizables guardados como archivos markdown (en .claude/commands). Escribes /mi-comando y se ejecuta el flujo completo: ideal para tareas repetitivas del equipo.",
         },
         {
           title: "Subagentes",
           body:
-            "Un subagente es una instancia auxiliar con su propio contexto y permisos, ideal para tareas paralelas o de búsqueda amplia. El agente principal delega y recibe solo la conclusión, ahorrando contexto.",
+            "Un subagente es un asistente AISLADO con su propia ventana de contexto: hace su tarea y devuelve solo un resumen, manteniendo limpia la conversación principal. Se crean con el comando /agents. Diseño fiable: salida estructurada, reporte de errores y acceso restringido a herramientas.",
         },
         {
           title: "Agent Skills",
           body:
-            "Las Skills empaquetan instrucciones y recursos reutilizables (una carpeta con un SKILL.md) que Claude carga cuando la tarea coincide. Encapsulan conocimiento experto de forma modular.",
+            "Una Skill es una carpeta con un SKILL.md: instrucciones reutilizables que Claude carga AUTOMÁTICAMENTE cuando la tarea coincide con su descripción (frontmatter). 'Enseña una vez, aplica siempre'. Pueden incluir más archivos y scripts, y se comparten vía repos o plugins.",
         },
         {
-          title: "Slash commands y hooks",
+          title: "Hooks: control determinista",
           body:
-            "Los slash commands (/comando) lanzan flujos predefinidos. Los hooks ejecutan scripts automáticamente en ciertos eventos (p. ej. antes de una herramienta o al terminar), configurados en settings.json.",
+            "Los hooks ejecutan scripts en eventos del ciclo de vida (antes/después de una herramienta, al terminar…). A diferencia de pedir cosas en el prompt, los hooks son DETERMINISTAS: el formateo tras cada edición o una notificación SIEMPRE ocurren.",
+        },
+        {
+          title: "MCP, GitHub y el SDK",
+          body:
+            "Claude Code se amplía con servidores MCP (datos y herramientas externas), se integra con GitHub (responder issues, arreglar CI, revisar PRs) y ofrece un SDK para construir tus propios agentes sobre su infraestructura.",
         },
       ],
       questions: [
         {
-          q: "¿Dónde se ejecuta principalmente Claude Code?",
+          q: "¿Cuál es el workflow diario recomendado en Claude Code 101?",
           options: [
-            "En la terminal/CLI (también IDE y web)",
-            "Solo dentro de un navegador móvil",
-            "En una consola de videojuegos",
-            "Únicamente en la nube sin interfaz",
+            "Explore → Plan → Code → Commit",
+            "Copy → Paste → Pray → Panic",
+            "Commit → Code → Plan → Explore",
+            "Build → Break → Blame → Bail",
           ],
           answer: 0,
           explain:
-            "Claude Code es un agente de línea de comandos, disponible además en IDE, app de escritorio y web.",
+            "Explorar el código, planificar el enfoque, implementar y commitear: saltarse el plan degrada los resultados.",
         },
         {
-          q: "¿Para qué sirve el archivo CLAUDE.md de un repositorio?",
+          q: "¿Para qué sirve el archivo CLAUDE.md?",
           options: [
-            "Dar contexto persistente: convenciones, comandos y arquitectura",
-            "Guardar contraseñas en texto plano",
-            "Compilar el proyecto",
-            "Sustituir al README para usuarios finales",
+            "Memoria persistente del proyecto: convenciones, comandos y arquitectura",
+            "Guardar contraseñas del equipo",
+            "Sustituir al control de versiones",
+            "Configurar el color del terminal",
           ],
           answer: 0,
           explain:
-            "CLAUDE.md documenta el proyecto para que el agente trabaje alineado con tus convenciones.",
+            "Claude lo lee en cada sesión; evita repetir las mismas instrucciones una y otra vez.",
         },
         {
-          q: "Una ventaja clave de usar un SUBAGENTE es:",
+          q: "Terminaste una tarea y empiezas otra sin relación. ¿Qué conviene hacer con el contexto?",
           options: [
-            "Aísla contexto y devuelve solo la conclusión, ahorrando el contexto principal",
-            "Borra el repositorio automáticamente",
-            "Elimina la necesidad de permisos",
-            "Hace que el modelo olvide la tarea",
+            "Usar /clear para empezar con contexto limpio",
+            "Seguir en la misma conversación para siempre",
+            "Reinstalar Claude Code",
+            "Borrar el repositorio",
           ],
           answer: 0,
           explain:
-            "Los subagentes tienen su propio contexto; útiles para búsquedas amplias o trabajo paralelo sin saturar la conversación principal.",
+            "Contexto irrelevante degrada la calidad. /clear reinicia; /compact resume conservando lo esencial.",
         },
         {
-          q: "Una Agent Skill se empaqueta principalmente como:",
+          q: "La gran ventaja de un SUBAGENTE es que:",
           options: [
-            "Una carpeta con un archivo SKILL.md más recursos",
-            "Un único archivo .exe",
-            "Una imagen PNG",
-            "Una fila de base de datos",
+            "Trabaja en un contexto aislado y devuelve solo un resumen",
+            "Borra archivos más rápido",
+            "No necesita permisos para nada",
+            "Sustituye al control de versiones",
           ],
           answer: 0,
           explain:
-            "Las Skills son carpetas con instrucciones (SKILL.md) y recursos que Claude carga cuando la tarea lo amerita.",
+            "El subagente consume su propio contexto y reporta la conclusión, manteniendo limpia la conversación principal.",
         },
         {
-          q: "Los HOOKS en Claude Code permiten:",
-          options: [
-            "Ejecutar scripts automáticamente en ciertos eventos",
-            "Cambiar el modelo a GPT",
-            "Desactivar la terminal",
-            "Eliminar el historial de git",
-          ],
+          q: "¿Con qué comando creas y gestionas subagentes personalizados?",
+          options: ["/agents", "/delete-all", "/sudo", "/magic"],
           answer: 0,
           explain:
-            "Los hooks disparan comandos en eventos del ciclo de vida (antes/después de herramientas, al terminar, etc.), definidos en settings.json.",
+            "El comando /agents permite crear subagentes especializados (revisor de código, documentador…).",
         },
         {
-          q: "Un usuario escribe '/review'. ¿Qué es eso?",
+          q: "Según el curso, un subagente FIABLE se diseña con:",
           options: [
-            "Un slash command que lanza un flujo predefinido",
-            "Un error de sintaxis",
-            "Un nombre de variable",
-            "Un commit de git",
+            "Salida estructurada, reporte de errores y herramientas restringidas",
+            "Acceso total a todo y sin formato de salida",
+            "El máximo de tareas posibles a la vez",
+            "Instrucciones lo más vagas posible",
           ],
           answer: 0,
           explain:
-            "Los slash commands invocan acciones o skills predefinidas dentro de Claude Code.",
+            "Restringir herramientas y exigir salidas estructuradas con errores explícitos hace a los subagentes predecibles.",
+        },
+        {
+          q: "¿Qué es una Agent Skill?",
+          options: [
+            "Una carpeta con SKILL.md que Claude carga automáticamente cuando la tarea coincide",
+            "Un certificado oficial de programación",
+            "Un atajo de teclado",
+            "Un plan de pago premium",
+          ],
+          answer: 0,
+          explain:
+            "Las Skills son instrucciones reutilizables en markdown; el frontmatter con su descripción actúa de disparador.",
+        },
+        {
+          q: "¿Qué diferencia clave hay entre una Skill y CLAUDE.md?",
+          options: [
+            "La Skill se carga solo cuando la tarea coincide; CLAUDE.md se lee siempre",
+            "CLAUDE.md es de pago y las Skills no",
+            "Las Skills solo funcionan en Windows",
+            "Ninguna: son el mismo archivo",
+          ],
+          answer: 0,
+          explain:
+            "Las Skills son eficientes en contexto: solo ocupan espacio cuando son relevantes. CLAUDE.md es contexto permanente del proyecto.",
+        },
+        {
+          q: "Quieres que el código se formatee SIEMPRE tras cada edición, sin depender de que Claude se acuerde. Usas:",
+          options: [
+            "Un hook (script automático en el evento de edición)",
+            "Pedirlo amablemente en cada prompt",
+            "Un post-it en el monitor",
+            "Subir la temperature",
+          ],
+          answer: 0,
+          explain:
+            "Los hooks dan control determinista: se ejecutan siempre en su evento, a diferencia de las instrucciones en lenguaje natural.",
+        },
+        {
+          q: "Un custom slash command es:",
+          options: [
+            "Un prompt reutilizable guardado como markdown que invocas con /nombre",
+            "Un virus de terminal",
+            "Una tecla rota",
+            "Un tipo de commit de git",
+          ],
+          answer: 0,
+          explain:
+            "Se guardan en .claude/commands y empaquetan flujos repetitivos del equipo en un solo comando.",
+        },
+        {
+          q: "¿Cómo se comparten las Skills con tu equipo?",
+          options: [
+            "Vía repositorios, plugins o configuración gestionada de empresa",
+            "Solo imprimiéndolas en papel",
+            "No se pueden compartir",
+            "Por mensaje de texto SMS",
+          ],
+          answer: 0,
+          explain:
+            "El curso de Agent Skills cubre distribución por repos, plugins y enterprise-managed settings para estandarizar equipos.",
+        },
+        {
+          q: "El SDK de Claude Code (Agent SDK) sirve para:",
+          options: [
+            "Construir tus propios agentes sobre la infraestructura de Claude Code",
+            "Minar criptomonedas",
+            "Cambiar el fondo de pantalla",
+            "Comprimir archivos ZIP",
+          ],
+          answer: 0,
+          explain:
+            "El SDK expone el bucle agéntico, las herramientas y los permisos para que construyas agentes a medida.",
         },
       ],
     },
 
-    /* ----------------------------------------------------------------- */
-    /* MUNDO 5 — Model Context Protocol (MCP)                             */
-    /* ----------------------------------------------------------------- */
+    /* ================================================================ */
+    /* MUNDO 7 — MCP: intro + temas avanzados                            */
+    /* ================================================================ */
     {
       id: "mcp",
       name: "Model Context Protocol",
       icon: "🔗",
       color: "#1971c2",
       blurb:
-        "El estándar abierto para conectar modelos con herramientas y datos: arquitectura cliente-servidor, tools, resources, prompts y transportes.",
+        "El estándar abierto que conecta IA con herramientas y datos: tools, resources y prompts; JSON-RPC; transportes stdio y StreamableHTTP; sampling, notificaciones y roots.",
       lessons: [
         {
-          title: "¿Qué es MCP?",
+          title: "¿Qué problema resuelve MCP?",
           body:
-            "El Model Context Protocol es un estándar abierto que estandariza cómo las aplicaciones de IA se conectan a herramientas y fuentes de datos externas. Se le llama 'el USB-C de las apps de IA'.",
+            "Antes, conectar M aplicaciones de IA con N herramientas exigía M×N integraciones a medida. MCP es un estándar abierto que lo reduce a un protocolo común: se le llama 'el USB-C de las apps de IA'.",
         },
         {
-          title: "Arquitectura cliente-servidor",
+          title: "Host, cliente y servidor",
           body:
-            "Un HOST (p. ej. Claude Desktop) contiene CLIENTES MCP que se conectan a SERVIDORES MCP. Cada servidor expone capacidades concretas; el cliente las consume en nombre del modelo.",
+            "Un HOST (Claude Desktop, Claude Code…) contiene CLIENTES MCP, y cada cliente mantiene una conexión con un SERVIDOR MCP. El servidor expone capacidades; el cliente las consume en nombre del modelo.",
         },
         {
-          title: "Las tres primitivas del servidor",
+          title: "Las tres primitivas",
           body:
-            "Un servidor MCP puede ofrecer: TOOLS (funciones que el modelo invoca), RESOURCES (datos/contexto que se leen) y PROMPTS (plantillas reutilizables que el usuario puede invocar).",
+            "TOOLS: funciones que el MODELO decide invocar (model-controlled). RESOURCES: datos de solo lectura identificados por URI que la APLICACIÓN adjunta como contexto (app-controlled). PROMPTS: plantillas que el USUARIO invoca explícitamente (user-controlled).",
         },
         {
-          title: "Transportes",
+          title: "Probar servidores: el Inspector",
           body:
-            "MCP define transportes como stdio (proceso local) y HTTP/SSE (remoto). El protocolo de mensajes se basa en JSON-RPC 2.0.",
+            "El MCP Inspector es una herramienta de desarrollo en el navegador para conectar con tu servidor, listar sus tools/resources/prompts y probarlos sin necesidad de un cliente completo. Imprescindible al desarrollar.",
         },
         {
-          title: "Por qué importa",
+          title: "Mensajes JSON-RPC",
           body:
-            "Antes, cada integración modelo↔herramienta era a medida (problema MxN). MCP ofrece un protocolo común, así un servidor sirve a cualquier host compatible y viceversa.",
+            "MCP habla JSON-RPC 2.0. Hay dos familias de mensajes: REQUESTS, que esperan un RESULT (o error) de vuelta, y NOTIFICATIONS, que se envían sin esperar respuesta (p. ej. avisos de progreso).",
+        },
+        {
+          title: "Transportes: stdio y StreamableHTTP",
+          body:
+            "STDIO conecta con un servidor que corre como proceso local (entrada/salida estándar): simple y seguro para herramientas locales. StreamableHTTP sirve para servidores REMOTOS, usando HTTP y Server-Sent Events para streaming.",
+        },
+        {
+          title: "Avanzado: sampling, notificaciones y roots",
+          body:
+            "SAMPLING: el servidor puede pedir al CLIENTE que haga una llamada al LLM por él (así el servidor no necesita su propia API key). NOTIFICACIONES de log/progreso informan en tiempo real. ROOTS declaran qué directorios puede tocar el servidor: límites de seguridad.",
+        },
+        {
+          title: "Escalar en producción",
+          body:
+            "Un servidor StreamableHTTP SIN estado (stateless) puede replicarse horizontalmente detrás de un load balancer: cualquier instancia atiende cualquier petición. Si mantienes estado por sesión, el escalado se complica.",
         },
       ],
       questions: [
         {
-          q: "¿Qué problema resuelve principalmente MCP?",
+          q: "¿Qué problema resuelve MCP?",
           options: [
-            "Estandarizar cómo la IA se conecta a herramientas y datos externos",
-            "Entrenar modelos desde cero",
-            "Comprimir imágenes",
-            "Reemplazar al sistema operativo",
+            "Evitar M×N integraciones a medida con un protocolo estándar común",
+            "Hacer los modelos más grandes",
+            "Comprimir vídeos",
+            "Sustituir a Internet",
           ],
           answer: 0,
           explain:
-            "MCP es un protocolo abierto que estandariza las conexiones entre modelos y sistemas externos, evitando integraciones a medida.",
+            "Un protocolo común: cualquier servidor MCP sirve a cualquier host compatible, como el USB-C.",
         },
         {
-          q: "En la arquitectura MCP, el componente que aloja los clientes (como Claude Desktop) se llama:",
-          options: ["Host", "Compilador", "Kernel", "Router"],
+          q: "En MCP, ¿qué contiene un HOST como Claude Desktop?",
+          options: [
+            "Clientes MCP que se conectan a servidores",
+            "Los pesos del modelo de lenguaje",
+            "Una copia de GitHub",
+            "El sistema operativo completo",
+          ],
           answer: 0,
           explain:
-            "El host contiene uno o varios clientes MCP que se conectan a servidores. Host → Cliente → Servidor.",
+            "Arquitectura: Host → contiene clientes → cada cliente se conecta a un servidor MCP.",
         },
         {
-          q: "¿Cuáles son las tres primitivas principales que expone un servidor MCP?",
+          q: "¿Cuáles son las tres primitivas que expone un servidor MCP?",
           options: [
             "Tools, Resources y Prompts",
-            "HTML, CSS y JS",
-            "GET, POST y PUT",
-            "Train, Test y Deploy",
+            "HTML, CSS y JavaScript",
+            "GET, POST y DELETE",
+            "Entrada, Proceso y Salida",
           ],
           answer: 0,
           explain:
-            "Un servidor MCP ofrece tools (acciones), resources (datos de contexto) y prompts (plantillas reutilizables).",
+            "Tools (acciones), Resources (datos por URI) y Prompts (plantillas reutilizables).",
         },
         {
-          q: "Una analogía popular describe a MCP como:",
+          q: "¿Quién decide cuándo invocar una TOOL de MCP?",
           options: [
-            "El 'USB-C' de las aplicaciones de IA",
-            "El 'motor V8' de los navegadores",
-            "El 'disco duro' de la nube",
-            "El 'firewall' de los modelos",
+            "El modelo (son model-controlled)",
+            "El usuario con un menú",
+            "El servidor unilateralmente",
+            "Nadie: se ejecutan al azar",
           ],
           answer: 0,
           explain:
-            "Igual que USB-C conecta dispositivos con un estándar común, MCP conecta modelos con herramientas de forma uniforme.",
+            "Tools = model-controlled; Resources = app-controlled; Prompts = user-controlled. Cada primitiva tiene su 'dueño'.",
         },
         {
-          q: "¿Sobre qué formato de mensajes se construye MCP?",
-          options: ["JSON-RPC 2.0", "SOAP", "GraphQL", "FTP"],
+          q: "Los RESOURCES de un servidor MCP son:",
+          options: [
+            "Datos de solo lectura identificados por un URI que se adjuntan como contexto",
+            "Funciones que modifican la base de datos",
+            "Monedas virtuales del protocolo",
+            "Servidores de respaldo",
+          ],
           answer: 0,
           explain:
-            "MCP intercambia mensajes usando JSON-RPC 2.0 sobre transportes como stdio o HTTP/SSE.",
+            "Un resource expone datos (documentos, registros…) vía URI para que la aplicación los inyecte como contexto.",
         },
         {
-          q: "Un transporte típico para un servidor MCP LOCAL es:",
-          options: ["stdio", "Bluetooth", "NFC", "SMTP"],
+          q: "Para probar tu servidor MCP recién creado sin escribir un cliente, usas:",
+          options: [
+            "El MCP Inspector en el navegador",
+            "Una impresora",
+            "El administrador de tareas",
+            "Un editor de imágenes",
+          ],
           answer: 0,
           explain:
-            "stdio conecta con un servidor que corre como proceso local; para remotos se usa HTTP/SSE.",
+            "El Inspector lista y ejecuta tools/resources/prompts de tu servidor: la herramienta de desarrollo estándar.",
         },
         {
-          q: "Si quieres exponer un conjunto de FUNCIONES que el modelo pueda ejecutar, usarías la primitiva:",
-          options: ["Tools", "Resources", "Prompts", "Hosts"],
+          q: "¿Sobre qué especificación de mensajes se construye MCP?",
+          options: ["JSON-RPC 2.0", "SOAP", "FTP", "Morse"],
           answer: 0,
           explain:
-            "Las Tools son funciones invocables; Resources aportan datos legibles y Prompts son plantillas.",
+            "Todos los mensajes MCP son JSON-RPC 2.0 sobre un transporte (stdio o StreamableHTTP).",
+        },
+        {
+          q: "¿Qué diferencia un REQUEST de una NOTIFICATION en MCP?",
+          options: [
+            "El request espera un result; la notification no espera respuesta",
+            "El request es más corto",
+            "La notification cuesta dinero",
+            "Son exactamente lo mismo",
+          ],
+          answer: 0,
+          explain:
+            "Requests forman pares petición-respuesta; las notifications (p. ej. progreso) se emiten sin esperar contestación.",
+        },
+        {
+          q: "¿Qué transporte usarías para un servidor MCP REMOTO en producción?",
+          options: [
+            "StreamableHTTP (HTTP + Server-Sent Events)",
+            "stdio",
+            "Bluetooth",
+            "Paloma mensajera",
+          ],
+          answer: 0,
+          explain:
+            "stdio es para procesos locales; StreamableHTTP es el transporte para servidores remotos con streaming.",
+        },
+        {
+          q: "El 'sampling' en MCP permite que:",
+          options: [
+            "El servidor pida al cliente hacer una llamada al LLM en su nombre",
+            "El servidor reproduzca música",
+            "El cliente borre el servidor",
+            "El modelo se entrene solo",
+          ],
+          answer: 0,
+          explain:
+            "Con sampling el servidor delega la llamada al modelo en el cliente: no necesita su propia API key ni configuración.",
+        },
+        {
+          q: "Los ROOTS en MCP sirven para:",
+          options: [
+            "Declarar qué directorios puede acceder el servidor: un límite de seguridad",
+            "Plantar árboles digitales",
+            "Acelerar la red",
+            "Cambiar la raíz cuadrada",
+          ],
+          answer: 0,
+          explain:
+            "Roots comunica al servidor los límites del sistema de archivos en los que puede operar.",
+        },
+        {
+          q: "Para escalar un servidor MCP horizontalmente tras un load balancer conviene que sea:",
+          options: [
+            "Stateless (sin estado por sesión) con StreamableHTTP",
+            "Stateful con memoria en cada instancia",
+            "Un proceso stdio en tu portátil",
+            "Imposible de replicar",
+          ],
+          answer: 0,
+          explain:
+            "Sin estado por sesión, cualquier réplica atiende cualquier petición: el patrón de escalado horizontal clásico.",
         },
       ],
     },
 
-    /* ----------------------------------------------------------------- */
-    /* MUNDO 6 — Despliegue: Bedrock & Vertex AI + Cowork                 */
-    /* ----------------------------------------------------------------- */
+    /* ================================================================ */
+    /* MUNDO 8 — Bedrock, Vertex AI y Claude Cowork                      */
+    /* ================================================================ */
     {
       id: "deploy",
-      name: "Despliegue en la nube y Cowork",
+      name: "Despliegue cloud y Cowork",
       icon: "☁️",
       color: "#e8590c",
       blurb:
-        "Usar Claude a través de Amazon Bedrock y Google Cloud Vertex AI, y colaborar con Claude Cowork.",
+        "Claude en Amazon Bedrock (boto3, IAM) y Google Cloud Vertex AI; qué cambia y qué no entre plataformas; y Claude Cowork: tareas delegadas, skills, plugins y seguridad.",
       lessons: [
+        {
+          title: "¿Por qué usar Claude vía un cloud?",
+          body:
+            "Empresas que ya operan en AWS o Google Cloud pueden usar Claude manteniendo datos, facturación, seguridad y gobernanza dentro de su nube: cumplen requisitos de residencia de datos y aprovechan acuerdos existentes.",
+        },
         {
           title: "Claude en Amazon Bedrock",
           body:
-            "Bedrock es el servicio gestionado de modelos fundacionales de AWS. Permite invocar Claude con la infraestructura, seguridad (IAM) y región de AWS, sin gestionar servidores.",
+            "Bedrock es el servicio gestionado de modelos fundacionales de AWS. Desde Python se invoca con el SDK boto3, y los permisos se controlan con IAM (roles y políticas). Los modelos se identifican con model IDs propios de Bedrock.",
         },
         {
-          title: "Claude en Google Cloud Vertex AI",
+          title: "Claude en Vertex AI",
           body:
-            "Vertex AI es la plataforma de ML de Google Cloud. Ofrece Claude como modelo gestionado, integrado con la autenticación, facturación y herramientas MLOps de GCP.",
+            "Vertex AI es la plataforma de ML de Google Cloud: ofrece Claude como modelo gestionado con la autenticación de Google Cloud, selección de región y la integración MLOps de GCP. Mismo patrón, otra nube.",
         },
         {
-          title: "¿Por qué un proveedor cloud?",
+          title: "Lo que NO cambia",
           body:
-            "Empresas ya en AWS o GCP pueden mantener datos y gobernanza dentro de su nube, aprovechar acuerdos existentes y cumplir requisitos de residencia de datos y seguridad.",
+            "Clave de ambos cursos: las TÉCNICAS son las mismas en cualquier plataforma. Prompting, system prompts, tool use, RAG, evals, caching, extended thinking y MCP funcionan igual: solo cambian la autenticación, el SDK y los identificadores de modelo.",
         },
         {
           title: "Claude Cowork",
           body:
-            "Cowork apunta a la colaboración: trabajar junto a Claude en tareas y proyectos compartidos, ampliando el uso individual hacia flujos de equipo.",
+            "Cowork es el espacio de trabajo agéntico de Claude: DESCRIBES la tarea, Claude PLANIFICA y la EJECUTA en pasos, y tú DIRIGES por el camino. Pensado para trabajo real multi-paso: informes, análisis, documentos.",
+        },
+        {
+          title: "Personalizar Cowork",
+          body:
+            "Para mejores resultados: instrucciones globales y proyectos (contexto permanente), SKILLS que enseñan tu manera de trabajar, y PLUGINS que encapsulan la experiencia del equipo. Claude también se integra en Chrome y Microsoft 365.",
+        },
+        {
+          title: "Seguridad al compartir",
+          body:
+            "Antes de compartir lo que construyes: valida las skills de los plugins, revisa qué datos puede tocar Claude y aplica las buenas prácticas de trabajo seguro. Compartir multiplica el valor… y también los riesgos si no se revisa.",
         },
       ],
       questions: [
         {
-          q: "Amazon Bedrock es, ante todo:",
+          q: "Amazon Bedrock es:",
           options: [
-            "Un servicio gestionado de AWS para invocar modelos fundacionales como Claude",
-            "Un lenguaje de programación",
-            "Una base de datos NoSQL",
-            "Un editor de vídeo",
+            "El servicio gestionado de AWS para invocar modelos fundacionales como Claude",
+            "Un lenguaje de programación de Amazon",
+            "Una base de datos relacional",
+            "Un servicio de mensajería",
           ],
           answer: 0,
           explain:
-            "Bedrock da acceso gestionado a modelos (incluido Claude) con la seguridad e infraestructura de AWS.",
+            "Bedrock da acceso gestionado a Claude con la infraestructura y seguridad de AWS.",
         },
         {
-          q: "Vertex AI pertenece a qué proveedor de nube:",
-          options: ["Google Cloud", "Amazon Web Services", "Microsoft Azure", "Oracle Cloud"],
+          q: "¿Qué SDK de Python se usa típicamente para llamar a Claude en Bedrock?",
+          options: ["boto3", "numpy", "matplotlib", "flask"],
           answer: 0,
           explain:
-            "Vertex AI es la plataforma de machine learning de Google Cloud, que ofrece Claude como modelo gestionado.",
+            "boto3 es el SDK oficial de AWS para Python; con él se invocan los modelos de Bedrock.",
         },
         {
-          q: "¿Qué control de acceso usarías típicamente para Claude en Bedrock?",
+          q: "Los permisos de acceso a Bedrock se gestionan con:",
           options: [
             "AWS IAM (roles y políticas)",
-            "Un archivo .htaccess",
-            "Claves físicas USB",
-            "No requiere autenticación",
+            "Un archivo de Excel compartido",
+            "Contraseñas por correo",
+            "No necesita permisos",
           ],
           answer: 0,
           explain:
-            "En AWS, IAM gestiona permisos mediante roles y políticas, también para invocar modelos en Bedrock.",
+            "IAM controla quién puede invocar qué modelos: el sistema de permisos estándar de AWS.",
         },
         {
-          q: "Una razón empresarial para usar Claude vía Bedrock o Vertex en lugar de la API directa es:",
-          options: [
-            "Mantener datos y gobernanza dentro de su nube existente",
-            "Que el modelo sea más inteligente que en otros canales",
-            "Eliminar por completo los costes",
-            "Evitar tener que escribir prompts",
-          ],
+          q: "Vertex AI es la plataforma de ML de:",
+          options: ["Google Cloud", "Amazon", "Microsoft", "Oracle"],
           answer: 0,
           explain:
-            "El atractivo es la integración con la seguridad, facturación y residencia de datos de la nube ya adoptada por la empresa.",
+            "Vertex AI (GCP) ofrece Claude como modelo gestionado con la autenticación y regiones de Google Cloud.",
         },
         {
-          q: "Claude Cowork está orientado sobre todo a:",
+          q: "Al pasar de la API directa a Bedrock o Vertex, ¿qué SE MANTIENE igual?",
           options: [
-            "La colaboración en tareas y proyectos compartidos",
-            "Renderizar videojuegos 3D",
-            "Minar criptomonedas",
-            "Sustituir a la terminal de Linux",
+            "Las técnicas: prompting, tool use, RAG, evals, caching…",
+            "Absolutamente nada",
+            "Solo el color del logo",
+            "El precio exacto por token",
           ],
           answer: 0,
           explain:
-            "Cowork lleva a Claude hacia flujos de trabajo colaborativos de equipo más allá del uso individual.",
+            "Cambian autenticación, SDK y model IDs; las técnicas de construcción son idénticas en las tres vías.",
+        },
+        {
+          q: "La razón principal de una empresa para usar Claude vía su proveedor cloud es:",
+          options: [
+            "Mantener datos, gobernanza y facturación dentro de su nube existente",
+            "Que el modelo es más inteligente ahí",
+            "Que es la única forma de usar Claude",
+            "Evitar escribir prompts",
+          ],
+          answer: 0,
+          explain:
+            "Residencia de datos, seguridad y acuerdos existentes: el modelo y las técnicas son los mismos.",
+        },
+        {
+          q: "El modelo de trabajo de Claude Cowork es:",
+          options: [
+            "Describes la tarea, Claude planifica y ejecuta, tú diriges por el camino",
+            "Claude decide solo qué tareas hacer sin consultarte",
+            "Tú escribes el código y Claude mira",
+            "Todo se hace por videollamada",
+          ],
+          answer: 0,
+          explain:
+            "Cowork es trabajo agéntico supervisado: delegación con dirección humana continua.",
+        },
+        {
+          q: "En Cowork, los PLUGINS sirven para:",
+          options: [
+            "Encapsular la experiencia y formas de trabajar de tu equipo",
+            "Reproducir música de fondo",
+            "Cambiar el idioma del teclado",
+            "Acelerar el WiFi",
+          ],
+          answer: 0,
+          explain:
+            "Los plugins empaquetan skills y conocimiento del equipo para reutilizarlos y compartirlos.",
+        },
+        {
+          q: "Además de la app, ¿dónde más puedes usar Claude según el curso de Cowork?",
+          options: [
+            "En Chrome y en Microsoft 365",
+            "Solo en máquinas de escribir",
+            "Únicamente en consolas de videojuegos",
+            "En ningún otro sitio",
+          ],
+          answer: 0,
+          explain:
+            "Claude se integra en el navegador (Chrome) y en Microsoft 365 para trabajar donde ya trabajas.",
+        },
+        {
+          q: "Antes de compartir un plugin con tu equipo, la buena práctica es:",
+          options: [
+            "Validar sus skills y revisar qué datos puede tocar",
+            "Compartirlo sin mirar: la velocidad es lo primero",
+            "Borrarlo por si acaso",
+            "Imprimirlo y archivarlo",
+          ],
+          answer: 0,
+          explain:
+            "El curso dedica una sección a sharing & safety: validar skills y trabajar con datos de forma segura antes de distribuir.",
         },
       ],
     },
@@ -675,4 +1473,9 @@ const GAME_DATA = {
 // Exponer en navegador.
 if (typeof window !== "undefined") {
   window.GAME_DATA = GAME_DATA;
+}
+
+// Exponer en Node para validación.
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = GAME_DATA;
 }

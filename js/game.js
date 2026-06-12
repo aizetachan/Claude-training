@@ -13,7 +13,7 @@
 (function () {
   "use strict";
 
-  const STORAGE_KEY = "claude-academy-save-v1";
+  const STORAGE_KEY = "claude-academy-save-v2";
   const LIVES_PER_ROUND = 3;
   const XP_PER_CORRECT = 10;
   const STREAK_BONUS = 5; // bonus extra a partir de 2 aciertos seguidos.
@@ -23,8 +23,10 @@
   const defaultState = () => ({
     xp: 0,
     completed: {}, // worldId -> { best: %, stars: n }
-    unlockedIndex: 0, // índice del mundo más alto desbloueado
+    unlockedIndex: 0, // índice del mundo más alto desbloqueado
     finalUnlocked: false,
+    player: "", // nombre para la tabla de puntuaciones
+    scores: [], // historial: { name, worldId, worldName, icon, pct, xp, secs, date, final }
   });
 
   let state = loadState();
@@ -101,8 +103,10 @@
       <div class="stats">
         <div class="chip" title="Experiencia">⭐ ${state.xp} XP</div>
         <div class="chip" title="Nivel">Lv.${lv.lvl} · ${lv.title}</div>
+        <div class="chip link" id="scoresBtn" title="Tabla de puntuaciones">🏅 Puntuaciones</div>
       </div>`;
     h.querySelector("#homeBtn").onclick = renderMap;
+    h.querySelector("#scoresBtn").onclick = renderScores;
     return h;
   }
 
@@ -229,6 +233,7 @@
       streak: 0,
       gained: 0,
       isFinal: !!opts.isFinal,
+      startTime: Date.now(),
     };
     renderQuestion(session);
   }
@@ -334,6 +339,21 @@
   function renderResult(s) {
     const pct = Math.round((s.correct / s.questions.length) * 100);
     const stars = pct === 100 ? 3 : pct >= 80 ? 2 : pct >= 60 ? 1 : 0;
+    const secs = Math.round((Date.now() - s.startTime) / 1000);
+
+    // Registrar en la tabla de puntuaciones.
+    state.scores.push({
+      name: state.player || "Jugador/a",
+      worldId: s.world.id,
+      worldName: s.world.name,
+      icon: s.world.icon,
+      pct,
+      xp: s.gained,
+      secs,
+      date: new Date().toISOString().slice(0, 10),
+      final: !!s.isFinal,
+    });
+    if (state.scores.length > 100) state.scores = state.scores.slice(-100);
 
     if (!s.isFinal) {
       // Guardar mejor resultado y desbloquear siguiente.
@@ -368,7 +388,7 @@
       <h2>${s.isFinal ? "Examen final completado" : "¡Mundo completado!"}</h2>
       <div class="result-stars">${starStr}</div>
       <p class="big">${s.correct}/${s.questions.length} aciertos · ${pct}%</p>
-      <p>+${s.gained} XP ganados${stars >= 1 && !s.isFinal ? " · siguiente mundo desbloqueado 🔓" : ""}</p>`;
+      <p>+${s.gained} XP ganados · ⏱ ${fmtTime(secs)}${stars >= 1 && !s.isFinal ? " · siguiente mundo desbloqueado 🔓" : ""}</p>`;
 
     if (s.isFinal && pct >= 80) {
       r.appendChild(
@@ -387,6 +407,88 @@
     r.appendChild(home);
     r.appendChild(again);
     view.appendChild(r);
+    render(view);
+  }
+
+  /* ----------------------------- Puntuaciones ----------------------- */
+
+  function fmtTime(secs) {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return m > 0 ? `${m}m ${s}s` : `${s}s`;
+  }
+
+  function renderScores() {
+    const view = el("div", "view");
+    view.appendChild(header());
+
+    const box = el("div", "scorebox");
+    box.appendChild(el("h2", null, "🏅 Tabla de puntuaciones"));
+
+    // Editor de nombre de jugador.
+    const nameRow = el("div", "name-row");
+    nameRow.innerHTML = `
+      <label for="playerName">Tu nombre:</label>
+      <input id="playerName" maxlength="20" placeholder="Jugador/a" value="${(state.player || "").replace(/"/g, "&quot;")}" />
+      <button class="primary" id="saveName">Guardar</button>`;
+    nameRow.querySelector("#saveName").onclick = () => {
+      state.player = nameRow.querySelector("#playerName").value.trim();
+      saveState();
+      renderScores();
+    };
+    box.appendChild(nameRow);
+
+    // Mejores marcas por mundo.
+    box.appendChild(el("h3", null, "Mejores marcas por mundo"));
+    const bests = el("table", "scoretable");
+    bests.innerHTML = "<tr><th>Mundo</th><th>Mejor %</th><th>Estrellas</th></tr>";
+    GAME_DATA.worlds.forEach((w) => {
+      const done = state.completed[w.id];
+      const tr = el("tr");
+      tr.innerHTML = `
+        <td>${w.icon} ${w.name}</td>
+        <td>${done ? done.best + "%" : "—"}</td>
+        <td class="stars">${done ? "★★★".slice(0, done.stars) + "☆☆☆".slice(0, 3 - done.stars) : "—"}</td>`;
+      bests.appendChild(tr);
+    });
+    box.appendChild(bests);
+
+    // Ranking de rondas: mejor % primero, a igualdad gana el más rápido.
+    const ranked = state.scores
+      .slice()
+      .sort((a, b) => b.pct - a.pct || a.secs - b.secs)
+      .slice(0, 15);
+
+    box.appendChild(el("h3", null, "Mejores rondas"));
+    if (ranked.length === 0) {
+      box.appendChild(
+        el("p", "muted", "Aún no hay rondas registradas. ¡Juega un mundo para estrenar la tabla!")
+      );
+    } else {
+      const t = el("table", "scoretable");
+      t.innerHTML =
+        "<tr><th>#</th><th>Jugador/a</th><th>Mundo</th><th>%</th><th>XP</th><th>Tiempo</th><th>Fecha</th></tr>";
+      ranked.forEach((r, i) => {
+        const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1;
+        const tr = el("tr", r.final ? "finalrow" : null);
+        tr.innerHTML = `
+          <td>${medal}</td>
+          <td>${r.name}</td>
+          <td>${r.icon} ${r.final ? "<strong>Examen final</strong>" : r.worldName}</td>
+          <td>${r.pct}%</td>
+          <td>+${r.xp}</td>
+          <td>${fmtTime(r.secs)}</td>
+          <td>${r.date}</td>`;
+        t.appendChild(tr);
+      });
+      box.appendChild(t);
+    }
+
+    const back = el("button", "primary wide", "‹ Volver al mapa");
+    back.onclick = renderMap;
+    box.appendChild(back);
+
+    view.appendChild(box);
     render(view);
   }
 
