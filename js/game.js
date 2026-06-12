@@ -262,7 +262,7 @@
   function xpChipHtml() {
     const lv = level(state.xp);
     const pct = lv.into; // 0..99
-    const label = `Lv.${lv.lvl} · ${lv.title}`;
+    const label = `Lv.${lv.lvl}`;
     return `<div class="xpchip" id="xpChip" title="Nivel ${lv.lvl}: ${lv.title} · ${pct}/100 XP">
         <div class="xpchip-fill" style="width:${pct}%"></div>
         <span class="xpchip-lbl">${label}</span>
@@ -276,7 +276,7 @@
     if (!chip) return;
     const lv = level(state.xp);
     const pct = lv.into;
-    const label = `Lv.${lv.lvl} · ${lv.title}`;
+    const label = `Lv.${lv.lvl}`;
     const fill = chip.querySelector(".xpchip-fill");
     const base = chip.querySelector(".xpchip-lbl:not(.white)");
     const white = chip.querySelector(".xpchip-lbl.white");
