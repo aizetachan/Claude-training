@@ -397,6 +397,64 @@ button { font-family: var(--sans); font-size: 15px; font-weight: 600; }
 .mq { color: var(--ink); font-weight: 600; font-size: 15px; margin-bottom: 4px; line-height: 1.4; }
 .me { color: var(--muted); font-size: 14px; line-height: 1.55; }
 
+/* ---------------- Cinemática de inicio ---------------- */
+.cine {
+  min-height: 78vh; display: flex; align-items: center; justify-content: center;
+}
+.cine-scene {
+  text-align: center; max-width: 560px; padding: 20px;
+  animation: cineIn .55s cubic-bezier(.2, .7, .2, 1);
+}
+@keyframes cineIn {
+  from { opacity: 0; transform: translateY(16px) scale(.97); }
+  to   { opacity: 1; transform: none; }
+}
+.cine-icon {
+  font-size: 72px; line-height: 1; margin-bottom: 26px;
+  animation: cineIcon .7s cubic-bezier(.2, .7, .2, 1);
+}
+@keyframes cineIcon {
+  from { opacity: 0; transform: scale(.6); }
+  60%  { transform: scale(1.08); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.cine-scene h2 { margin: 0 0 16px; font-size: 34px; color: var(--ink); }
+.cine-scene p {
+  color: var(--ink-soft); font-size: 18.5px; line-height: 1.7; margin: 0 auto;
+  max-width: 46ch;
+}
+.cine-scene .dots { margin-top: 28px; }
+.cine-nav {
+  display: flex; justify-content: center; gap: 12px; margin-top: 30px; flex-wrap: wrap;
+}
+.cine-nav .primary { min-width: 170px; }
+
+/* ---------------- Interstitial del jefe ---------------- */
+.bossintro {
+  --accent: var(--clay);
+  text-align: center; padding: 40px 16px;
+  animation: cineIn .5s cubic-bezier(.2, .7, .2, 1);
+}
+.boss-flash {
+  font-size: 60px; line-height: 1; margin-bottom: 18px;
+  animation: bossPulse 1.1s ease-in-out infinite;
+}
+@keyframes bossPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.16); }
+}
+.bossintro h2 { margin: 0 0 18px; font-size: 34px; color: var(--ink); }
+.bossintro p {
+  color: var(--ink-soft); font-size: 17px; line-height: 1.7;
+  max-width: 50ch; margin: 0 auto 10px;
+}
+.boss-reward { color: var(--clay) !important; font-weight: 600; }
+.bossintro .wide { max-width: 340px; margin: 26px auto 0; }
+
+/* ---------------- Pie del mapa ---------------- */
+.mapfoot { display: flex; justify-content: center; gap: 26px; margin-top: 34px; }
+.mapfoot .reset { margin: 0; }
+
 /* ---------------- Toast ---------------- */
 .toast {
   position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 20px);

@@ -32,6 +32,7 @@
     player: "",
     scores: [],
     storyMode: true,
+    introSeen: false,
     muted: false,
     streakDays: 0,
     lastActive: "", // YYYY-MM-DD del último día con actividad
@@ -218,6 +219,67 @@
     return h;
   }
 
+  /* ----------------------------- Cinemática de inicio --------------- */
+
+  const INTRO_SLIDES = [
+    {
+      icon: "🌆",
+      title: "Bienvenido/a al estudio",
+      text: "Las mejores ideas de hoy se construyen con IA. Acabas de unirte como builder a un pequeño estudio con una gran ambición.",
+    },
+    {
+      icon: "💡",
+      title: "Tu misión",
+      text: "Construir y LANZAR tu propio producto de IA: un asistente que hable, responda con precisión, use herramientas y llegue a producción.",
+    },
+    {
+      icon: "🗺️",
+      title: "El camino",
+      text: "Cada mundo te entrena en una capacidad real de Claude: entender el modelo, la API, RAG, agentes, Claude Code, MCP… Las mismas que usan los equipos profesionales.",
+    },
+    {
+      icon: "🚀",
+      title: "El reto",
+      text: "Al final de cada mundo, un RETO DE LANZAMIENTO pondrá a prueba tu producto con un caso real. Supéralos todos y llegarás al día del lanzamiento.",
+    },
+  ];
+
+  function renderIntro(idx) {
+    idx = idx || 0;
+    const slide = INTRO_SLIDES[idx];
+    const view = el("div", "view cine");
+    const sc = el("div", "cine-scene");
+    sc.innerHTML = `
+      <div class="cine-icon">${slide.icon}</div>
+      <h2>${slide.title}</h2>
+      <p>${slide.text}</p>`;
+    const dots = el("div", "dots");
+    INTRO_SLIDES.forEach((_, i) => dots.appendChild(el("span", "dot" + (i === idx ? " on" : ""))));
+    sc.appendChild(dots);
+
+    const nav = el("div", "cine-nav");
+    const skip = el("button", "ghost", "Saltar intro");
+    skip.onclick = finishIntro;
+    const next = el(
+      "button",
+      "primary",
+      idx === INTRO_SLIDES.length - 1 ? "¡Empezar! ▶" : "Siguiente ›"
+    );
+    next.onclick = () =>
+      idx === INTRO_SLIDES.length - 1 ? finishIntro() : renderIntro(idx + 1);
+    nav.appendChild(skip);
+    nav.appendChild(next);
+    sc.appendChild(nav);
+    view.appendChild(sc);
+    render(view);
+  }
+
+  function finishIntro() {
+    state.introSeen = true;
+    saveState();
+    renderMap();
+  }
+
   /* ----------------------------- Mapa ------------------------------- */
 
   function renderMap() {
@@ -290,15 +352,20 @@
     grid.appendChild(finalCard);
     view.appendChild(grid);
 
+    const foot = el("div", "mapfoot");
+    const replay = el("button", "reset", "🎬 Ver intro");
+    replay.onclick = () => renderIntro(0);
     const reset = el("button", "reset", "↺ Reiniciar progreso");
     reset.onclick = () => {
       if (confirm("¿Borrar todo tu progreso?")) {
         state = defaultState();
         saveState();
-        renderMap();
+        renderIntro(0);
       }
     };
-    view.appendChild(reset);
+    foot.appendChild(replay);
+    foot.appendChild(reset);
+    view.appendChild(foot);
     render(view);
   }
 
@@ -590,14 +657,42 @@
     card.appendChild(fb);
 
     const last = s.i >= s.questions.length - 1;
-    const cont = el("button", "primary wide", last ? "Ver resultados ›" : "Continuar ›");
+    const nextIsBoss = !last && s.questions[s.i + 1] && s.questions[s.i + 1].isBoss;
+    const cont = el(
+      "button",
+      "primary wide",
+      last ? "Ver resultados ›" : nextIsBoss ? "Continuar… ⚠️" : "Continuar ›"
+    );
     cont.onclick = () => {
       if (s.lives <= 0) return renderFail(s);
       s.i++;
       if (s.i >= s.questions.length) return renderResult(s);
+      if (s.questions[s.i].isBoss) return renderBossIntro(s);
       renderQuestion(s);
     };
     card.appendChild(cont);
+  }
+
+  /* ----------------------------- Interstitial del jefe -------------- */
+
+  function renderBossIntro(s) {
+    const view = el("div", "view");
+    view.appendChild(header());
+    const b = el("div", "bossintro");
+    b.style.setProperty("--accent", s.world.color);
+    b.innerHTML = `
+      <div class="boss-flash">⚠️</div>
+      <div class="mission-tag">Fase final del mundo</div>
+      <h2>🚀 Reto de lanzamiento</h2>
+      <p>Has completado el entrenamiento de <strong>${s.world.name}</strong>.
+      Ahora un escenario real pone a prueba tu producto: no es teoría, es lo que
+      te encontrarás construyendo de verdad.</p>
+      <p class="boss-reward">Acierta y ganas <strong>XP doble</strong>. Fallar cuesta una vida, como siempre.</p>`;
+    const go = el("button", "primary wide", "¡Acepto el reto! ▶");
+    go.onclick = () => renderQuestion(s);
+    b.appendChild(go);
+    view.appendChild(b);
+    render(view);
   }
 
   /* ----------------------------- Resumen de fallos ------------------ */
@@ -860,5 +955,6 @@
 
   /* ----------------------------- Init ------------------------------- */
 
-  renderMap();
+  if (!state.introSeen) renderIntro(0);
+  else renderMap();
 })();
