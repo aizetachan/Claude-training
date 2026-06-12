@@ -1470,6 +1470,342 @@ const GAME_DATA = {
   ],
 };
 
+/* ===================================================================
+   CAPA NARRATIVA — "Construye y lanza tu producto con IA"
+   La historia es el envoltorio; la documentación de Claude es la carga.
+   Cada mundo = una capacidad que necesitas para lanzar tu asistente.
+   =================================================================== */
+
+const GAME_STORY = {
+  fundamentals: {
+    mission:
+      "Antes de construir nada, tienes que conocer tu materia prima: cómo 'piensa' el modelo con el que vas a trabajar. Hoy estudias sus cuatro propiedades y las herramientas de Claude.ai. Sin esto, todo lo demás se construye sobre arena.",
+    outcome: "Ya entiendes con qué trabajas. Tu cuaderno de builder está abierto.",
+  },
+  fluency: {
+    mission:
+      "Un buen producto no nace de pedirle cosas a la IA al azar. Aprende el marco 4D para colaborar con criterio —delegar, describir, discernir y ser diligente— y no a ciegas.",
+    outcome: "Tienes un método para colaborar con IA con criterio y responsabilidad.",
+  },
+  api: {
+    mission:
+      "Hora de dar vida a tu producto: que HABLE. Conecta con la Claude API y aprende a controlar sus respuestas (mensajes, system prompt, temperature, streaming, caching).",
+    outcome: "🗣️ Tu asistente ya responde por API. ¡Está vivo!",
+  },
+  prompting: {
+    mission:
+      "Tu asistente habla, pero a veces inventa. Aprende prompting, evaluación y RAG para que responda con precisión usando los documentos reales de tu empresa.",
+    outcome: "🎯 Tu asistente cita fuentes y lo mides con evals. Adiós a las alucinaciones.",
+  },
+  agents: {
+    mission:
+      "Un asistente que solo habla se queda corto. Dale herramientas para que ACTÚE: busque, calcule, ejecute. Aprende tool use, el agent loop y cuándo usar workflows o agentes.",
+    outcome: "🛠️ Tu asistente usa herramientas y decide pasos. Ya es un agente.",
+  },
+  claudecode: {
+    mission:
+      "Construir a mano es lento. Incorpora a Claude Code a tu equipo para programar más rápido y con mejores prácticas: workflow, subagentes, skills y hooks.",
+    outcome: "⚡ Tu velocidad de desarrollo se dispara con Claude Code.",
+  },
+  mcp: {
+    mission:
+      "Tu producto necesita conectarse al mundo real: bases de datos, APIs, archivos. Aprende MCP, el estándar abierto que conecta tu IA con herramientas y datos externos.",
+    outcome: "🔌 Tu asistente se conecta a sistemas externos vía MCP.",
+  },
+  deploy: {
+    mission:
+      "Último paso: llevar tu producto a producción y compartirlo con tu equipo. Despliega en Amazon Bedrock o Google Vertex AI y colabora en Claude Cowork.",
+    outcome: "🚀 ¡LANZAMIENTO! Tu producto de IA está en producción.",
+  },
+};
+
+/* Reto de lanzamiento (jefe) por mundo: escenario APLICADO, no definición. */
+const GAME_BOSS = {
+  fundamentals: {
+    q: "Un usuario dice que Claude 'mintió' sobre una noticia de la semana pasada. ¿Cuál es la explicación más probable y la mejor solución?",
+    options: [
+      "Es posterior a su fecha de corte; dale búsqueda web o el contexto del hecho",
+      "El modelo está roto; hay que reinstalarlo",
+      "Claude nunca se equivoca; miente el usuario",
+      "Subir la temperature lo arreglará",
+    ],
+    answer: 0,
+    explain:
+      "Sin acceso a información actual, el modelo rellena el hueco con texto plausible (alucinación). La solución es aportarle el dato: búsqueda web o contexto.",
+  },
+  fluency: {
+    q: "Vas a redactar la memoria anual de tu ONG con IA usando datos de donantes. ¿Qué aplicas PRIMERO según el marco 4D?",
+    options: [
+      "Diligence (privacidad de datos) al delegar, y Discernment para verificar lo escrito",
+      "Solo Description: con un buen prompt basta",
+      "Delegar todo y publicar sin revisar",
+      "Nada: las 4D no aplican a textos",
+    ],
+    answer: 0,
+    explain:
+      "Con datos sensibles, la Diligencia (privacidad) gobierna la delegación y el Discernimiento verifica el resultado antes de publicar.",
+  },
+  api: {
+    q: "Tu chatbot debe recordar lo dicho hace 3 mensajes, pero 'se olvida'. ¿Qué falla en tu integración?",
+    options: [
+      "No reenvías el historial completo; la API es stateless",
+      "La temperature está demasiado baja",
+      "Falta activar el streaming",
+      "El modelo tiene poca memoria RAM",
+    ],
+    answer: 0,
+    explain:
+      "La API no guarda estado: cada llamada debe incluir todo el historial. Tu aplicación es la dueña de la memoria.",
+  },
+  prompting: {
+    q: "Cliente: 'el asistente debe responder SOLO con datos de nuestros manuales y citar de dónde'. ¿Qué montas?",
+    options: [
+      "RAG para recuperar fragmentos de los manuales + citations para referenciarlos",
+      "Subir max_tokens al máximo",
+      "Reentrenar el modelo desde cero con los manuales",
+      "Pedirlo en el system prompt y confiar",
+    ],
+    answer: 0,
+    explain:
+      "RAG inyecta solo los fragmentos relevantes y las citations anclan cada afirmación a su fuente: respuestas fundamentadas y verificables.",
+  },
+  agents: {
+    q: "Tu agente debe consultar el tiempo y reservar una sala. La tarea es predecible y siempre igual. ¿Agente o workflow?",
+    options: [
+      "Workflow: pasos fijos, más barato, fiable y depurable",
+      "Un agente complejo con 20 herramientas",
+      "Computer use obligatoriamente",
+      "Ninguno: es imposible de automatizar",
+    ],
+    answer: 0,
+    explain:
+      "Si los pasos son predecibles, un workflow es más adecuado. Reserva los agentes para cuando haga falta decidir dinámicamente.",
+  },
+  claudecode: {
+    q: "Quieres que TODO el equipo formatee el código igual tras cada edición, sin depender de recordarlo. ¿Qué usas?",
+    options: [
+      "Un hook en el evento de edición (control determinista)",
+      "Un recordatorio en el system prompt",
+      "Un subagente nuevo por cada archivo",
+      "Pedirlo amablemente cada vez",
+    ],
+    answer: 0,
+    explain:
+      "Los hooks se ejecutan siempre en su evento: control determinista, ideal para formateo, lint o notificaciones consistentes.",
+  },
+  mcp: {
+    q: "Construyes un servidor MCP remoto para miles de usuarios que debe escalar tras un load balancer. ¿Cómo lo diseñas?",
+    options: [
+      "Stateless con StreamableHTTP, para replicarlo horizontalmente",
+      "Con estado por sesión en la memoria de cada instancia",
+      "Con transporte stdio en tu portátil",
+      "Sin protocolo: HTTP plano a mano",
+    ],
+    answer: 0,
+    explain:
+      "Sin estado por sesión, cualquier réplica atiende cualquier petición: el patrón de escalado horizontal con StreamableHTTP.",
+  },
+  deploy: {
+    q: "Tu empresa ya opera en AWS con requisitos de residencia de datos. ¿Cómo despliegas Claude conservando tu prompting y tool use?",
+    options: [
+      "Vía Amazon Bedrock (boto3 + IAM); las técnicas no cambian",
+      "Reescribiendo todo desde cero para Bedrock",
+      "Solo con la API directa, ignorando AWS",
+      "Es imposible usar Claude dentro de AWS",
+    ],
+    answer: 0,
+    explain:
+      "Bedrock mantiene datos y gobernanza en AWS; cambian autenticación, SDK y model IDs, pero prompting, tool use, RAG y caching son idénticos.",
+  },
+};
+
+/* Preguntas de FORMATO VARIADO (tf = verdadero/falso, order = ordenar,
+   match = emparejar) que se suman al banco de cada mundo. */
+const GAME_EXTRA = {
+  fundamentals: [
+    {
+      type: "tf",
+      q: "Dentro de una misma conversación, Claude 'recuerda' lo dicho antes porque cabe en su ventana de contexto.",
+      answer: true,
+      explain:
+        "La memoria de trabajo es la ventana de contexto: lo que cabe en la conversación actual. Entre conversaciones separadas no hay memoria automática.",
+    },
+    {
+      type: "match",
+      q: "Empareja cada propiedad del modelo con su descripción:",
+      pairs: [
+        ["Predicción de tokens", "Genera el siguiente fragmento más probable"],
+        ["Conocimiento", "Limitado por la fecha de corte"],
+        ["Memoria de trabajo", "Es la ventana de contexto"],
+        ["Steerability", "Sensibilidad a las instrucciones"],
+      ],
+      explain: "Las cuatro propiedades del curso 'AI Capabilities and Limitations'.",
+    },
+  ],
+  fluency: [
+    {
+      type: "match",
+      q: "Empareja cada 'D' del marco con su esencia:",
+      pairs: [
+        ["Delegation", "Qué tarea dar a la IA y cuál no"],
+        ["Description", "Comunicar con claridad lo que quieres"],
+        ["Discernment", "Evaluar críticamente la salida"],
+        ["Diligence", "Uso responsable y transparente"],
+      ],
+      explain: "El marco 4D: Delegación, Descripción, Discernimiento y Diligencia.",
+    },
+    {
+      type: "tf",
+      q: "Delegar una tarea a la IA te exime de la responsabilidad sobre el resultado.",
+      answer: false,
+      explain:
+        "Falso: el bucle Delegation-Diligence mantiene SIEMPRE tu responsabilidad final. Delegar no es desentenderse.",
+    },
+  ],
+  api: [
+    {
+      type: "order",
+      q: "Ordena el flujo de una conversación multi-turno por API:",
+      steps: [
+        "Envías 'messages' con el historial",
+        "Claude responde con un mensaje del asistente",
+        "Añades esa respuesta a tu historial",
+        "Reenvías el historial completo en la siguiente llamada",
+      ],
+      explain:
+        "La API es stateless: tu app acumula y reenvía todo el historial en cada turno.",
+    },
+    {
+      type: "tf",
+      q: "Una temperature baja (≈0) produce respuestas más deterministas y consistentes.",
+      answer: true,
+      explain:
+        "Correcto: menos aleatoriedad. Sube la temperature solo cuando busques variedad o creatividad.",
+    },
+  ],
+  prompting: [
+    {
+      type: "order",
+      q: "Ordena el workflow de evaluación de prompts:",
+      steps: [
+        "Generar un dataset de casos de prueba",
+        "Ejecutar el prompt sobre cada caso",
+        "Calificar las salidas (por código o por modelo)",
+        "Iterar el prompt y repetir",
+      ],
+      explain: "Las evals hacen del prompting una disciplina medible, no intuición.",
+    },
+    {
+      type: "match",
+      q: "Empareja cada pieza de un pipeline RAG con lo que aporta:",
+      pairs: [
+        ["Embeddings", "Búsqueda por significado"],
+        ["BM25", "Coincidencia de palabras exactas"],
+        ["Reranking", "Reordena por relevancia"],
+        ["Chunking", "Trocea los documentos"],
+      ],
+      explain:
+        "RAG combina búsqueda semántica y léxica, con troceado previo y reranking final.",
+    },
+  ],
+  agents: [
+    {
+      type: "order",
+      q: "Ordena el agent loop:",
+      steps: [
+        "El modelo observa el estado",
+        "Decide la siguiente acción (una herramienta)",
+        "Tu código la ejecuta y devuelve el resultado",
+        "El modelo continúa hasta lograr el objetivo",
+      ],
+      explain:
+        "La inteligencia del agente está en que el MODELO decide cada paso según los resultados.",
+    },
+    {
+      type: "match",
+      q: "Empareja cada patrón de workflow con su idea:",
+      pairs: [
+        ["Chaining", "Encadenar pasos secuenciales"],
+        ["Routing", "Clasificar y derivar la entrada"],
+        ["Parallelization", "Subtareas simultáneas"],
+      ],
+      explain: "Los workflows orquestan LLMs con pasos predefinidos por código.",
+    },
+  ],
+  claudecode: [
+    {
+      type: "order",
+      q: "Ordena el workflow diario recomendado en Claude Code:",
+      steps: [
+        "Explore (explorar el código relevante)",
+        "Plan (planificar el enfoque)",
+        "Code (implementar)",
+        "Commit (guardar los cambios)",
+      ],
+      explain:
+        "Explore → Plan → Code → Commit: saltarse la exploración y el plan degrada el resultado.",
+    },
+    {
+      type: "tf",
+      q: "Una Skill se carga siempre en el contexto, igual que CLAUDE.md.",
+      answer: false,
+      explain:
+        "Falso: la Skill se carga solo cuando la tarea coincide con su descripción; CLAUDE.md es contexto permanente del proyecto.",
+    },
+  ],
+  mcp: [
+    {
+      type: "match",
+      q: "Empareja cada primitiva MCP con quién la controla:",
+      pairs: [
+        ["Tools", "El modelo"],
+        ["Resources", "La aplicación"],
+        ["Prompts", "El usuario"],
+      ],
+      explain:
+        "Tools = model-controlled, Resources = app-controlled, Prompts = user-controlled.",
+    },
+    {
+      type: "tf",
+      q: "El transporte stdio se usa para servidores MCP remotos en producción.",
+      answer: false,
+      explain:
+        "Falso: stdio es para procesos locales. Para remotos se usa StreamableHTTP (HTTP + SSE).",
+    },
+  ],
+  deploy: [
+    {
+      type: "tf",
+      q: "Al pasar a Bedrock o Vertex AI, tus técnicas de prompting y tool use cambian por completo.",
+      answer: false,
+      explain:
+        "Falso: cambian autenticación, SDK y model IDs. Prompting, tool use, RAG y caching son idénticos.",
+    },
+    {
+      type: "match",
+      q: "Empareja cada plataforma con lo que es:",
+      pairs: [
+        ["Amazon Bedrock", "Modelos gestionados en AWS"],
+        ["Vertex AI", "Modelos gestionados en Google Cloud"],
+        ["Claude Cowork", "Espacio de trabajo agéntico"],
+      ],
+      explain:
+        "Bedrock (AWS) y Vertex AI (GCP) ofrecen Claude gestionado; Cowork es el espacio colaborativo.",
+    },
+  ],
+};
+
+/* Fusionar narrativa, jefes y preguntas extra en cada mundo. */
+GAME_DATA.worlds.forEach(function (w) {
+  const st = GAME_STORY[w.id];
+  if (st) {
+    w.mission = st.mission;
+    w.outcome = st.outcome;
+  }
+  if (GAME_BOSS[w.id]) w.boss = GAME_BOSS[w.id];
+  if (GAME_EXTRA[w.id]) w.questions = w.questions.concat(GAME_EXTRA[w.id]);
+});
+
 // Exponer en navegador.
 if (typeof window !== "undefined") {
   window.GAME_DATA = GAME_DATA;

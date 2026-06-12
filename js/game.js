@@ -1,13 +1,16 @@
 /*
  * game.js — Motor del juego "Claude Academy".
  *
+ * Marco narrativo: "Construye y lanza tu producto con IA". Cada mundo
+ * desbloquea una capacidad que necesitas para lanzar tu asistente; la
+ * historia envuelve, pero la documentación de Claude es la carga.
+ *
  * Mecánicas:
- *  - Cada mundo se juega como: tarjetas de lección → ronda de preguntas.
- *  - Aciertos otorgan XP; las rachas (streaks) dan bonus.
- *  - Tienes 3 vidas (corazones) por ronda; al quedarte sin vidas, repites.
- *  - Completar un mundo desbloquea el siguiente y otorga un badge.
- *  - El progreso se guarda en localStorage.
- *  - Al terminar todos los mundos se desbloquea el "Examen final" mezclado.
+ *  - Misión (story) → lecciones → ronda de preguntas → reto de lanzamiento (jefe).
+ *  - Formatos de pregunta: opción múltiple, verdadero/falso, ordenar y emparejar.
+ *  - XP, niveles, vidas, rachas, estrellas y barra de "progreso de lanzamiento".
+ *  - Racha diaria, desafío diario (XP x2), sonido/confeti, resumen de fallos y compartir.
+ *  - Progreso en localStorage.
  */
 
 (function () {
@@ -16,17 +19,23 @@
   const STORAGE_KEY = "claude-academy-save-v2";
   const LIVES_PER_ROUND = 3;
   const XP_PER_CORRECT = 10;
-  const STREAK_BONUS = 5; // bonus extra a partir de 2 aciertos seguidos.
+  const STREAK_BONUS = 5;
+  const ROUND_SIZE = 8; // preguntas por ronda (más el jefe), muestreadas del banco.
 
   /* ----------------------------- Estado ----------------------------- */
 
   const defaultState = () => ({
     xp: 0,
-    completed: {}, // worldId -> { best: %, stars: n }
-    unlockedIndex: 0, // índice del mundo más alto desbloqueado
+    completed: {}, // worldId -> { best:%, stars:n }
+    unlockedIndex: 0,
     finalUnlocked: false,
-    player: "", // nombre para la tabla de puntuaciones
-    scores: [], // historial: { name, worldId, worldName, icon, pct, xp, secs, date, final }
+    player: "",
+    scores: [],
+    storyMode: true,
+    muted: false,
+    streakDays: 0,
+    lastActive: "", // YYYY-MM-DD del último día con actividad
+    dailyDone: "", // YYYY-MM-DD del último desafío diario completado
   });
 
   let state = loadState();
@@ -35,18 +44,13 @@
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) return Object.assign(defaultState(), JSON.parse(raw));
-    } catch (e) {
-      /* ignore */
-    }
+    } catch (e) {}
     return defaultState();
   }
-
   function saveState() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch (e) {
-      /* ignore */
-    }
+    } catch (e) {}
   }
 
   /* ----------------------------- Utilidades ------------------------- */
@@ -58,7 +62,6 @@
     if (html !== undefined) n.innerHTML = html;
     return n;
   };
-
   function shuffle(arr) {
     const a = arr.slice();
     for (let i = a.length - 1; i > 0; i--) {
@@ -67,9 +70,20 @@
     }
     return a;
   }
-
+  function todayStr() {
+    return new Date().toISOString().slice(0, 10);
+  }
+  function dayOffset(n) {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0, 10);
+  }
+  function fmtTime(secs) {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return m > 0 ? `${m}m ${s}s` : `${s}s`;
+  }
   function level(xp) {
-    // Nivel crece cada 100 XP, con títulos temáticos.
     const lvl = Math.floor(xp / 100) + 1;
     const titles = [
       "Aprendiz",
@@ -81,14 +95,89 @@
       "Especialista",
       "Maestro/a Claude",
     ];
-    const title = titles[Math.min(lvl - 1, titles.length - 1)];
-    return { lvl, title, into: xp % 100 };
+    return { lvl, title: titles[Math.min(lvl - 1, titles.length - 1)], into: xp % 100 };
+  }
+  function launchPct() {
+    const done = GAME_DATA.worlds.filter(
+      (w) => state.completed[w.id] && state.completed[w.id].stars >= 1
+    ).length;
+    return Math.round((done / GAME_DATA.worlds.length) * 100);
+  }
+
+  /* ----------------------------- Sonido / confeti ------------------- */
+
+  let audioCtx = null;
+  function beep(kind) {
+    if (state.muted) return;
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      const now = audioCtx.currentTime;
+      const notes = kind === "ok" ? [660, 880] : [200, 150];
+      notes.forEach((f, i) => {
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.connect(g);
+        g.connect(audioCtx.destination);
+        o.type = kind === "ok" ? "sine" : "square";
+        o.frequency.value = f;
+        const t0 = now + i * 0.09;
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(0.18, t0 + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.16);
+        o.start(t0);
+        o.stop(t0 + 0.17);
+      });
+    } catch (e) {}
+  }
+  function confetti() {
+    const c = el("canvas", "confetti-canvas");
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+    document.body.appendChild(c);
+    const ctx = c.getContext("2d");
+    const colors = ["#c15f3c", "#5c7f67", "#d6a35c", "#7c5cff", "#1971c2", "#e64980"];
+    const parts = Array.from({ length: 110 }, () => ({
+      x: Math.random() * c.width,
+      y: -20 - Math.random() * c.height * 0.4,
+      r: 4 + Math.random() * 6,
+      vy: 2 + Math.random() * 3.5,
+      vx: -1.2 + Math.random() * 2.4,
+      col: colors[Math.floor(Math.random() * colors.length)],
+      rot: Math.random() * 6,
+      vr: -0.2 + Math.random() * 0.4,
+    }));
+    let t = 0;
+    (function frame() {
+      t++;
+      ctx.clearRect(0, 0, c.width, c.height);
+      parts.forEach((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rot += p.vr;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = p.col;
+        ctx.fillRect(-p.r / 2, -p.r / 2, p.r, p.r * 0.6);
+        ctx.restore();
+      });
+      if (t < 150) requestAnimationFrame(frame);
+      else c.remove();
+    })();
+  }
+  function toast(msg) {
+    const t = el("div", "toast", msg);
+    document.body.appendChild(t);
+    setTimeout(() => t.classList.add("show"), 10);
+    setTimeout(() => {
+      t.classList.remove("show");
+      setTimeout(() => t.remove(), 300);
+    }, 1900);
   }
 
   /* ----------------------------- Navegación ------------------------- */
 
   const app = $("#app");
-
   function render(view) {
     app.innerHTML = "";
     app.appendChild(view);
@@ -98,19 +187,38 @@
   function header() {
     const lv = level(state.xp);
     const h = el("div", "topbar");
+    const streakChip =
+      state.streakDays > 0
+        ? `<div class="chip" title="Días seguidos jugando">🔥 ${state.streakDays}</div>`
+        : "";
     h.innerHTML = `
       <div class="brand" id="homeBtn">🎓 <span>Claude Academy</span></div>
       <div class="stats">
-        <div class="chip" title="Experiencia">⭐ ${state.xp} XP</div>
-        <div class="chip" title="Nivel">Lv.${lv.lvl} · ${lv.title}</div>
-        <div class="chip link" id="scoresBtn" title="Tabla de puntuaciones">🏅 Puntuaciones</div>
+        ${streakChip}
+        <div class="chip" title="Experiencia">⭐ ${state.xp}</div>
+        <div class="chip" title="Nivel: ${lv.title}">Lv.${lv.lvl}</div>
+        <div class="chip link" id="soundBtn" title="Sonido">${state.muted ? "🔇" : "🔊"}</div>
+        <div class="chip link" id="storyBtn" title="Modo historia">${state.storyMode ? "📖" : "📕"}</div>
+        <div class="chip link" id="scoresBtn" title="Puntuaciones">🏅</div>
       </div>`;
     h.querySelector("#homeBtn").onclick = renderMap;
     h.querySelector("#scoresBtn").onclick = renderScores;
+    h.querySelector("#soundBtn").onclick = function () {
+      state.muted = !state.muted;
+      saveState();
+      this.textContent = state.muted ? "🔇" : "🔊";
+      if (!state.muted) beep("ok");
+    };
+    h.querySelector("#storyBtn").onclick = function () {
+      state.storyMode = !state.storyMode;
+      saveState();
+      this.textContent = state.storyMode ? "📖" : "📕";
+      toast(state.storyMode ? "Modo historia activado" : "Modo historia desactivado");
+    };
     return h;
   }
 
-  /* ----------------------------- Mapa / Home ------------------------ */
+  /* ----------------------------- Mapa ------------------------------- */
 
   function renderMap() {
     const view = el("div", "view");
@@ -118,12 +226,35 @@
 
     const lv = level(state.xp);
     const hero = el("div", "hero");
+    const lp = launchPct();
+    const progressBlock = state.storyMode
+      ? `<div class="launch">
+           <div class="launch-label">🚀 Progreso de lanzamiento de tu producto</div>
+           <div class="xpbar"><div class="xpfill" style="width:${lp}%"></div></div>
+           <small>${lp}% · ${
+             lp === 100 ? "¡Producto lanzado! 🎉" : "Completa mundos para acercarte al lanzamiento"
+           }</small>
+         </div>`
+      : `<div class="xpbar"><div class="xpfill" style="width:${lv.into}%"></div></div>
+         <small>${lv.into}/100 XP hacia el siguiente nivel</small>`;
     hero.innerHTML = `
       <h1>${GAME_DATA.meta.title}</h1>
-      <p>${GAME_DATA.meta.subtitle}</p>
-      <div class="xpbar"><div class="xpfill" style="width:${lv.into}%"></div></div>
-      <small>${lv.into}/100 XP hacia el siguiente nivel</small>`;
+      <p>${state.storyMode ? "Eres builder. Aprende cada capacidad de Claude y lanza tu producto de IA." : GAME_DATA.meta.subtitle}</p>
+      ${progressBlock}`;
     view.appendChild(hero);
+
+    // Desafío diario.
+    const daily = el("div", "daily");
+    const doneToday = state.dailyDone === todayStr();
+    daily.innerHTML = doneToday
+      ? `<span>✅ Desafío diario completado hoy. ¡Vuelve mañana!</span>`
+      : `<div><strong>📅 Desafío diario</strong><br><small>5 preguntas mezcladas · XP x2</small></div>`;
+    if (!doneToday) {
+      const b = el("button", "primary", "Jugar ›");
+      b.onclick = renderDaily;
+      daily.appendChild(b);
+    }
+    view.appendChild(daily);
 
     const grid = el("div", "grid");
     GAME_DATA.worlds.forEach((w, i) => {
@@ -143,25 +274,21 @@
             ${done ? `<span class="stars">${stars}</span><span class="pct">${done.best}%</span>` : `<span class="muted">${unlocked ? "Sin completar" : "Bloqueado"}</span>`}
           </div>
         </div>`;
-      if (unlocked) card.onclick = () => renderLessons(w);
+      if (unlocked) card.onclick = () => enterWorld(w);
       grid.appendChild(card);
     });
-    view.appendChild(grid);
 
-    // Examen final.
-    const finalCard = el(
-      "div",
-      "card final" + (state.finalUnlocked ? "" : " locked")
-    );
+    const finalCard = el("div", "card final" + (state.finalUnlocked ? "" : " locked"));
     finalCard.style.setProperty("--accent", "#d6336c");
     finalCard.innerHTML = `
       <div class="card-icon">${state.finalUnlocked ? "🏆" : "🔒"}</div>
       <div class="card-body">
-        <h3>Examen final: Maestría Claude</h3>
-        <p>${state.finalUnlocked ? "Preguntas mezcladas de todos los mundos. ¡Demuestra tu maestría!" : "Completa todos los mundos para desbloquearlo."}</p>
+        <h3>Día del lanzamiento: Examen final</h3>
+        <p>${state.finalUnlocked ? "Preguntas mezcladas de todos los mundos. ¡Demuestra que tu producto está listo!" : "Completa los 8 mundos para desbloquearlo."}</p>
       </div>`;
     if (state.finalUnlocked) finalCard.onclick = renderFinal;
-    view.appendChild(finalCard);
+    grid.appendChild(finalCard);
+    view.appendChild(grid);
 
     const reset = el("button", "reset", "↺ Reiniciar progreso");
     reset.onclick = () => {
@@ -172,7 +299,36 @@
       }
     };
     view.appendChild(reset);
+    render(view);
+  }
 
+  /* ----------------------------- Misión (story) --------------------- */
+
+  function enterWorld(world) {
+    if (state.storyMode && world.mission) renderMission(world);
+    else renderLessons(world);
+  }
+
+  function renderMission(world) {
+    const view = el("div", "view");
+    view.appendChild(header());
+    const m = el("div", "mission");
+    m.style.setProperty("--accent", world.color);
+    const idx = GAME_DATA.worlds.findIndex((w) => w.id === world.id);
+    m.innerHTML = `
+      <div class="mission-icon">${world.icon}</div>
+      <div class="mission-tag">Misión ${idx + 1} de ${GAME_DATA.worlds.length}</div>
+      <h2>${world.name}</h2>
+      <p>${world.mission}</p>`;
+    const nav = el("div", "lesson-nav");
+    const back = el("button", "ghost", "‹ Mapa");
+    back.onclick = renderMap;
+    const go = el("button", "primary", "Empezar misión ›");
+    go.onclick = () => renderLessons(world);
+    nav.appendChild(back);
+    nav.appendChild(go);
+    m.appendChild(nav);
+    view.appendChild(m);
     render(view);
   }
 
@@ -182,7 +338,6 @@
     idx = idx || 0;
     const view = el("div", "view");
     view.appendChild(header());
-
     const lesson = world.lessons[idx];
     const wrap = el("div", "lesson");
     wrap.style.setProperty("--accent", world.color);
@@ -190,40 +345,39 @@
       <div class="lesson-tag">${world.icon} ${world.name} · Lección ${idx + 1}/${world.lessons.length}</div>
       <h2>${lesson.title}</h2>
       <p>${lesson.body}</p>`;
-
     const nav = el("div", "lesson-nav");
     const back = el("button", "ghost", "‹ Atrás");
-    back.onclick = () => (idx === 0 ? renderMap() : renderLessons(world, idx - 1));
+    back.onclick = () =>
+      idx === 0 ? (state.storyMode && world.mission ? renderMission(world) : renderMap()) : renderLessons(world, idx - 1);
     const next = el(
       "button",
       "primary",
       idx === world.lessons.length - 1 ? "¡A jugar! ▶" : "Siguiente ›"
     );
     next.onclick = () =>
-      idx === world.lessons.length - 1
-        ? startRound(world)
-        : renderLessons(world, idx + 1);
+      idx === world.lessons.length - 1 ? startRound(world) : renderLessons(world, idx + 1);
     nav.appendChild(back);
     nav.appendChild(next);
     wrap.appendChild(nav);
-
-    // Dots de progreso.
     const dots = el("div", "dots");
-    world.lessons.forEach((_, i) => {
-      const d = el("span", "dot" + (i === idx ? " on" : ""));
-      dots.appendChild(d);
-    });
+    world.lessons.forEach((_, i) => dots.appendChild(el("span", "dot" + (i === idx ? " on" : ""))));
     wrap.appendChild(dots);
-
     view.appendChild(wrap);
     render(view);
   }
 
-  /* ----------------------------- Ronda de preguntas ----------------- */
+  /* ----------------------------- Ronda ------------------------------ */
 
   function startRound(world, opts) {
     opts = opts || {};
-    const questions = shuffle(opts.questions || world.questions);
+    let questions;
+    if (opts.questions) {
+      questions = opts.questions.slice();
+    } else {
+      const pool = shuffle(world.questions);
+      questions = pool.slice(0, Math.min(ROUND_SIZE, pool.length));
+      if (world.boss) questions.push(Object.assign({}, world.boss, { isBoss: true }));
+    }
     const session = {
       world,
       questions,
@@ -232,7 +386,10 @@
       correct: 0,
       streak: 0,
       gained: 0,
+      wrong: [],
       isFinal: !!opts.isFinal,
+      isDaily: !!opts.isDaily,
+      xpMult: opts.xpMult || 1,
       startTime: Date.now(),
     };
     renderQuestion(session);
@@ -253,60 +410,187 @@
 
     const card = el("div", "qcard");
     card.style.setProperty("--accent", s.world.color);
-    card.appendChild(el("div", "qtag", `${s.world.icon} ${s.isFinal ? "Examen final" : s.world.name}`));
+    if (q.isBoss) card.appendChild(el("div", "bossbanner", "🚀 Reto de lanzamiento"));
+    const tag = q.isBoss
+      ? "🚀 Reto de lanzamiento"
+      : s.isFinal
+      ? "🏆 Examen final"
+      : s.isDaily
+      ? "📅 Desafío diario"
+      : `${s.world.icon} ${s.world.name}`;
+    card.appendChild(el("div", "qtag", tag));
     card.appendChild(el("h2", "qtext", q.q));
 
-    const opts = el("div", "options");
-    // Barajamos las opciones manteniendo el índice correcto.
-    const order = shuffle(q.options.map((_, i) => i));
-    order.forEach((origIdx) => {
-      const btn = el("button", "option", q.options[origIdx]);
-      btn.onclick = () => answer(s, q, origIdx, btn, opts, card);
-      opts.appendChild(btn);
-    });
-    card.appendChild(opts);
+    const type = q.type || "mc";
+    if (type === "tf") renderTF(s, q, card);
+    else if (type === "order") renderOrder(s, q, card);
+    else if (type === "match") renderMatch(s, q, card);
+    else renderMC(s, q, card);
+
     view.appendChild(card);
     render(view);
   }
 
-  function answer(s, q, chosen, btn, optsWrap, card) {
-    // Bloquear más clics.
-    [...optsWrap.children].forEach((b, i) => {
-      b.disabled = true;
-      b.onclick = null;
-    });
-    const correct = chosen === q.answer;
+  /* --- Renderizadores por tipo --- */
 
-    // Marcar visualmente.
-    [...optsWrap.children].forEach((b) => {
-      if (b.textContent === q.options[q.answer]) b.classList.add("correct");
+  function renderMC(s, q, card) {
+    const opts = el("div", "options");
+    shuffle(q.options.map((_, i) => i)).forEach((origIdx) => {
+      const btn = el("button", "option", q.options[origIdx]);
+      btn.onclick = () => {
+        [...opts.children].forEach((b) => (b.disabled = true));
+        [...opts.children].forEach((b) => {
+          if (b.textContent === q.options[q.answer]) b.classList.add("correct");
+        });
+        const correct = origIdx === q.answer;
+        if (!correct) btn.classList.add("wrong");
+        afterAnswer(s, correct, q, card);
+      };
+      opts.appendChild(btn);
     });
-    if (!correct) btn.classList.add("wrong");
+    card.appendChild(opts);
+  }
 
+  function renderTF(s, q, card) {
+    const wrap = el("div", "tfwrap");
+    [["Verdadero", true], ["Falso", false]].forEach(([label, val]) => {
+      const b = el("button", "tfbtn", label);
+      b.onclick = () => {
+        [...wrap.children].forEach((x) => (x.disabled = true));
+        const correct = val === q.answer;
+        if (correct) b.classList.add("correct");
+        else {
+          b.classList.add("wrong");
+          [...wrap.children].forEach((x, i) => {
+            if ([true, false][i] === q.answer) x.classList.add("correct");
+          });
+        }
+        afterAnswer(s, correct, q, card);
+      };
+      wrap.appendChild(b);
+    });
+    card.appendChild(wrap);
+  }
+
+  function renderOrder(s, q, card) {
+    let cur = shuffle(q.steps);
+    if (cur.join("|") === q.steps.join("|")) cur = shuffle(q.steps);
+    const hint = el("div", "subhint", "Ordena los pasos con ▲ ▼ y pulsa Comprobar.");
+    const list = el("div", "orderlist");
+    function paint() {
+      list.innerHTML = "";
+      cur.forEach((step, idx) => {
+        const row = el("div", "orderrow");
+        row.appendChild(el("span", "ordernum", String(idx + 1)));
+        row.appendChild(el("span", "ordertext", step));
+        const ctrls = el("div", "orderctrls");
+        const up = el("button", "ordbtn", "▲");
+        up.disabled = idx === 0;
+        up.onclick = () => {
+          [cur[idx - 1], cur[idx]] = [cur[idx], cur[idx - 1]];
+          paint();
+        };
+        const dn = el("button", "ordbtn", "▼");
+        dn.disabled = idx === cur.length - 1;
+        dn.onclick = () => {
+          [cur[idx + 1], cur[idx]] = [cur[idx], cur[idx + 1]];
+          paint();
+        };
+        ctrls.appendChild(up);
+        ctrls.appendChild(dn);
+        row.appendChild(ctrls);
+        list.appendChild(row);
+      });
+    }
+    paint();
+    card.appendChild(hint);
+    card.appendChild(list);
+    const check = el("button", "primary wide", "Comprobar");
+    check.onclick = () => {
+      const correct = cur.join("|") === q.steps.join("|");
+      [...list.children].forEach((row, idx) =>
+        row.classList.add(cur[idx] === q.steps[idx] ? "mok" : "mno")
+      );
+      list.querySelectorAll("button").forEach((b) => (b.disabled = true));
+      check.remove();
+      afterAnswer(s, correct, q, card);
+    };
+    card.appendChild(check);
+  }
+
+  function renderMatch(s, q, card) {
+    const rights = shuffle(q.pairs.map((p) => p[1]));
+    const sel = new Array(q.pairs.length).fill("");
+    const hint = el("div", "subhint", "Elige la pareja correcta para cada elemento.");
+    const wrap = el("div", "matchwrap");
+    const rows = [];
+    q.pairs.forEach((p, idx) => {
+      const row = el("div", "matchrow");
+      row.appendChild(el("span", "matchleft", p[0]));
+      const s2 = document.createElement("select");
+      s2.className = "matchsel";
+      const o0 = document.createElement("option");
+      o0.value = "";
+      o0.textContent = "Elige…";
+      s2.appendChild(o0);
+      rights.forEach((r) => {
+        const o = document.createElement("option");
+        o.value = r;
+        o.textContent = r;
+        s2.appendChild(o);
+      });
+      s2.onchange = () => {
+        sel[idx] = s2.value;
+        check.disabled = sel.some((v) => !v);
+      };
+      row.appendChild(s2);
+      wrap.appendChild(row);
+      rows.push(row);
+    });
+    card.appendChild(hint);
+    card.appendChild(wrap);
+    const check = el("button", "primary wide", "Comprobar");
+    check.disabled = true;
+    check.onclick = () => {
+      const correct = q.pairs.every((p, idx) => sel[idx] === p[1]);
+      rows.forEach((row, idx) => {
+        row.classList.add(sel[idx] === q.pairs[idx][1] ? "mok" : "mno");
+        row.querySelector("select").disabled = true;
+      });
+      check.remove();
+      afterAnswer(s, correct, q, card);
+    };
+    card.appendChild(check);
+  }
+
+  /* --- Resolución común --- */
+
+  function afterAnswer(s, correct, q, card) {
     if (correct) {
       s.correct++;
       s.streak++;
-      let gain = XP_PER_CORRECT + (s.streak >= 2 ? STREAK_BONUS : 0);
+      const bonus = s.streak >= 2 ? STREAK_BONUS : 0;
+      const gain = (XP_PER_CORRECT + bonus) * (q.isBoss ? 2 : 1) * s.xpMult;
       s.gained += gain;
       state.xp += gain;
+      beep("ok");
     } else {
       s.streak = 0;
       s.lives--;
+      s.wrong.push({ q: q.q, explain: q.explain });
+      beep("bad");
     }
     saveState();
 
-    // Explicación.
-    const fb = el(
-      "div",
-      "feedback " + (correct ? "ok" : "no")
-    );
+    const fb = el("div", "feedback " + (correct ? "ok" : "no"));
     fb.innerHTML = `
       <strong>${correct ? "✔ ¡Correcto!" : "✘ Casi"}</strong>
       <span>${q.explain}</span>
-      ${s.streak >= 2 && correct ? `<em class="streak">🔥 Racha x${s.streak} (+${STREAK_BONUS} bonus)</em>` : ""}`;
+      ${correct && s.streak >= 2 ? `<em class="streak">🔥 Racha x${s.streak} (+${STREAK_BONUS} bonus)</em>` : ""}`;
     card.appendChild(fb);
 
-    const cont = el("button", "primary wide", "Continuar ›");
+    const last = s.i >= s.questions.length - 1;
+    const cont = el("button", "primary wide", last ? "Ver resultados ›" : "Continuar ›");
     cont.onclick = () => {
       if (s.lives <= 0) return renderFail(s);
       s.i++;
@@ -316,18 +600,45 @@
     card.appendChild(cont);
   }
 
+  /* ----------------------------- Resumen de fallos ------------------ */
+
+  function mistakesBlock(s) {
+    if (!s.wrong.length) return null;
+    const box = el("div", "mistakes");
+    box.appendChild(el("h3", null, `📌 Repaso de tus ${s.wrong.length} fallo(s)`));
+    s.wrong.forEach((w) => {
+      const it = el("div", "mistake");
+      it.innerHTML = `<div class="mq">${w.q}</div><div class="me">${w.explain}</div>`;
+      box.appendChild(it);
+    });
+    return box;
+  }
+
+  /* ----------------------------- Racha diaria ----------------------- */
+
+  function touchStreak() {
+    const t = todayStr();
+    if (state.lastActive === t) return;
+    state.streakDays = state.lastActive === dayOffset(-1) ? state.streakDays + 1 : 1;
+    state.lastActive = t;
+  }
+
   /* ----------------------------- Resultados ------------------------- */
 
   function renderFail(s) {
+    touchStreak();
+    saveState();
     const view = el("div", "view");
     view.appendChild(header());
     const r = el("div", "result");
     r.innerHTML = `
       <div class="result-emoji">💔</div>
       <h2>Te quedaste sin vidas</h2>
-      <p>Llegaste a la pregunta ${s.i + 1} de ${s.questions.length}. ¡Repasa las lecciones y vuelve a intentarlo!</p>`;
+      <p>Llegaste a la pregunta ${s.i + 1} de ${s.questions.length}. Repasa y vuelve a intentarlo.</p>`;
+    const mb = mistakesBlock(s);
+    if (mb) r.appendChild(mb);
     const again = el("button", "primary wide", "↺ Reintentar");
-    again.onclick = () => (s.isFinal ? renderFinal() : startRound(s.world));
+    again.onclick = () => retry(s);
     const home = el("button", "ghost wide", "Volver al mapa");
     home.onclick = renderMap;
     r.appendChild(again);
@@ -336,12 +647,19 @@
     render(view);
   }
 
+  function retry(s) {
+    if (s.isFinal) return renderFinal();
+    if (s.isDaily) return renderDaily();
+    return startRound(s.world);
+  }
+
   function renderResult(s) {
     const pct = Math.round((s.correct / s.questions.length) * 100);
     const stars = pct === 100 ? 3 : pct >= 80 ? 2 : pct >= 60 ? 1 : 0;
     const secs = Math.round((Date.now() - s.startTime) / 1000);
 
-    // Registrar en la tabla de puntuaciones.
+    touchStreak();
+
     state.scores.push({
       name: state.player || "Jugador/a",
       worldId: s.world.id,
@@ -350,82 +668,121 @@
       pct,
       xp: s.gained,
       secs,
-      date: new Date().toISOString().slice(0, 10),
+      date: todayStr(),
       final: !!s.isFinal,
     });
     if (state.scores.length > 100) state.scores = state.scores.slice(-100);
 
-    if (!s.isFinal) {
-      // Guardar mejor resultado y desbloquear siguiente.
+    let unlockedNext = false;
+    if (s.isDaily) {
+      state.dailyDone = todayStr();
+    } else if (!s.isFinal) {
       const prev = state.completed[s.world.id];
-      if (!prev || pct > prev.best) {
-        state.completed[s.world.id] = { best: pct, stars };
-      } else if (stars > prev.stars) {
-        prev.stars = stars;
-      }
+      if (!prev || pct > prev.best) state.completed[s.world.id] = { best: pct, stars };
+      else if (stars > prev.stars) prev.stars = stars;
       const idx = GAME_DATA.worlds.findIndex((w) => w.id === s.world.id);
       if (stars >= 1 && idx === state.unlockedIndex) {
-        state.unlockedIndex = Math.min(
-          state.unlockedIndex + 1,
-          GAME_DATA.worlds.length - 1
-        );
+        state.unlockedIndex = Math.min(state.unlockedIndex + 1, GAME_DATA.worlds.length - 1);
+        unlockedNext = true;
       }
-      // ¿Todos completados con al menos 1 estrella?
-      const allDone = GAME_DATA.worlds.every(
-        (w) => state.completed[w.id] && state.completed[w.id].stars >= 1
-      );
-      if (allDone) state.finalUnlocked = true;
-      saveState();
+      if (GAME_DATA.worlds.every((w) => state.completed[w.id] && state.completed[w.id].stars >= 1))
+        state.finalUnlocked = true;
     }
+    saveState();
+
+    const celebrate = stars >= 2 || (s.isFinal && pct >= 80) || (s.isDaily && pct >= 80);
+    if (celebrate) confetti();
 
     const view = el("div", "view");
     view.appendChild(header());
     const r = el("div", "result");
     const emoji = stars === 3 ? "🏆" : stars === 2 ? "🎉" : stars >= 1 ? "👍" : "📚";
     const starStr = "★★★".slice(0, stars) + "☆☆☆".slice(0, 3 - stars);
+    const title = s.isFinal
+      ? "Día del lanzamiento"
+      : s.isDaily
+      ? "Desafío diario completado"
+      : "¡Misión completada!";
     r.innerHTML = `
       <div class="result-emoji">${emoji}</div>
-      <h2>${s.isFinal ? "Examen final completado" : "¡Mundo completado!"}</h2>
+      <h2>${title}</h2>
       <div class="result-stars">${starStr}</div>
       <p class="big">${s.correct}/${s.questions.length} aciertos · ${pct}%</p>
-      <p>+${s.gained} XP ganados · ⏱ ${fmtTime(secs)}${stars >= 1 && !s.isFinal ? " · siguiente mundo desbloqueado 🔓" : ""}</p>`;
+      <p>+${s.gained} XP${s.isDaily ? " (x2)" : ""} · ⏱ ${fmtTime(secs)}</p>`;
 
-    if (s.isFinal && pct >= 80) {
-      r.appendChild(
-        el(
-          "div",
-          "diploma",
-          "🎓 ¡Felicidades! Has demostrado maestría en los cursos de Claude."
-        )
-      );
+    // Outcome narrativo + progreso de lanzamiento.
+    if (state.storyMode && !s.isFinal && !s.isDaily && stars >= 1 && s.world.outcome) {
+      const out = el("div", "outcome");
+      out.innerHTML = `<div class="outcome-line">${s.world.outcome}</div>
+        <div class="launch-label">🚀 Progreso de lanzamiento: ${launchPct()}%</div>
+        <div class="xpbar"><div class="xpfill" style="width:${launchPct()}%"></div></div>`;
+      r.appendChild(out);
     }
+    if (unlockedNext) r.appendChild(el("div", "unlocked", "🔓 ¡Nueva capacidad desbloqueada!"));
+    if (s.isFinal && pct >= 80)
+      r.appendChild(
+        el("div", "diploma", "🎓 ¡Felicidades! Tu producto está en producción. Has demostrado maestría en los cursos de Claude.")
+      );
 
-    const again = el("button", "ghost wide", "↺ Reintentar");
-    again.onclick = () => (s.isFinal ? renderFinal() : startRound(s.world));
+    const mb = mistakesBlock(s);
+    if (mb) r.appendChild(mb);
+
     const home = el("button", "primary wide", "Continuar al mapa ›");
     home.onclick = renderMap;
     r.appendChild(home);
+
+    const share = el("button", "ghost wide", "📋 Compartir mi resultado");
+    share.onclick = () => doShare(s, pct, stars);
+    r.appendChild(share);
+
+    const again = el("button", "ghost wide", "↺ Reintentar");
+    again.onclick = () => retry(s);
     r.appendChild(again);
+
     view.appendChild(r);
     render(view);
   }
 
-  /* ----------------------------- Puntuaciones ----------------------- */
+  /* ----------------------------- Compartir -------------------------- */
 
-  function fmtTime(secs) {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return m > 0 ? `${m}m ${s}s` : `${s}s`;
+  function doShare(s, pct, stars) {
+    const starStr = stars ? "★".repeat(stars) + "☆".repeat(3 - stars) : "";
+    const what = s.isFinal ? "Examen final" : s.isDaily ? "Desafío diario" : s.world.name;
+    const text =
+      `🎓 Claude Academy — ${what}: ${pct}% ${starStr} (+${s.gained} XP)\n` +
+      `🚀 Progreso de lanzamiento: ${launchPct()}%\n` +
+      `Aprendo los cursos de Claude jugando.`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        () => toast("¡Resultado copiado al portapapeles!"),
+        () => fallbackCopy(text)
+      );
+    } else fallbackCopy(text);
   }
+  function fallbackCopy(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand("copy");
+      toast("¡Resultado copiado!");
+    } catch (e) {
+      toast("Copia manual: " + text);
+    }
+    ta.remove();
+  }
+
+  /* ----------------------------- Puntuaciones ----------------------- */
 
   function renderScores() {
     const view = el("div", "view");
     view.appendChild(header());
-
     const box = el("div", "scorebox");
     box.appendChild(el("h2", null, "🏅 Tabla de puntuaciones"));
 
-    // Editor de nombre de jugador.
     const nameRow = el("div", "name-row");
     nameRow.innerHTML = `
       <label for="playerName">Tu nombre:</label>
@@ -438,7 +795,6 @@
     };
     box.appendChild(nameRow);
 
-    // Mejores marcas por mundo.
     box.appendChild(el("h3", null, "Mejores marcas por mundo"));
     const bests = el("table", "scoretable");
     bests.innerHTML = "<tr><th>Mundo</th><th>Mejor %</th><th>Estrellas</th></tr>";
@@ -453,32 +809,21 @@
     });
     box.appendChild(bests);
 
-    // Ranking de rondas: mejor % primero, a igualdad gana el más rápido.
-    const ranked = state.scores
-      .slice()
-      .sort((a, b) => b.pct - a.pct || a.secs - b.secs)
-      .slice(0, 15);
-
+    const ranked = state.scores.slice().sort((a, b) => b.pct - a.pct || a.secs - b.secs).slice(0, 15);
     box.appendChild(el("h3", null, "Mejores rondas"));
-    if (ranked.length === 0) {
-      box.appendChild(
-        el("p", "muted", "Aún no hay rondas registradas. ¡Juega un mundo para estrenar la tabla!")
-      );
+    if (!ranked.length) {
+      box.appendChild(el("p", "muted", "Aún no hay rondas. ¡Juega un mundo para estrenar la tabla!"));
     } else {
       const t = el("table", "scoretable");
       t.innerHTML =
-        "<tr><th>#</th><th>Jugador/a</th><th>Mundo</th><th>%</th><th>XP</th><th>Tiempo</th><th>Fecha</th></tr>";
+        "<tr><th>#</th><th>Jugador/a</th><th>Mundo</th><th>%</th><th>XP</th><th>Tiempo</th></tr>";
       ranked.forEach((r, i) => {
         const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1;
         const tr = el("tr", r.final ? "finalrow" : null);
         tr.innerHTML = `
-          <td>${medal}</td>
-          <td>${r.name}</td>
-          <td>${r.icon} ${r.final ? "<strong>Examen final</strong>" : r.worldName}</td>
-          <td>${r.pct}%</td>
-          <td>+${r.xp}</td>
-          <td>${fmtTime(r.secs)}</td>
-          <td>${r.date}</td>`;
+          <td>${medal}</td><td>${r.name}</td>
+          <td>${r.icon} ${r.final ? "<strong>Final</strong>" : r.worldName}</td>
+          <td>${r.pct}%</td><td>+${r.xp}</td><td>${fmtTime(r.secs)}</td>`;
         t.appendChild(tr);
       });
       box.appendChild(t);
@@ -487,28 +832,29 @@
     const back = el("button", "primary wide", "‹ Volver al mapa");
     back.onclick = renderMap;
     box.appendChild(back);
-
     view.appendChild(box);
     render(view);
   }
 
-  /* ----------------------------- Examen final ----------------------- */
+  /* ----------------------------- Desafío diario / Final ------------- */
+
+  function renderDaily() {
+    let pool = [];
+    GAME_DATA.worlds.slice(0, state.unlockedIndex + 1).forEach((w) => {
+      shuffle(w.questions).slice(0, 3).forEach((q) => pool.push(q));
+    });
+    pool = shuffle(pool).slice(0, 5);
+    const dailyWorld = { id: "daily", name: "Desafío diario", icon: "📅", color: "#c15f3c" };
+    startRound(dailyWorld, { questions: pool, isDaily: true, xpMult: 2 });
+  }
 
   function renderFinal() {
-    // Toma 2 preguntas al azar de cada mundo.
     let pool = [];
     GAME_DATA.worlds.forEach((w) => {
-      const picks = shuffle(w.questions).slice(0, 2);
-      picks.forEach((q) => pool.push(Object.assign({}, q)));
-      // Adjuntar referencia al mundo para mostrar icono/color.
+      shuffle(w.questions).slice(0, 2).forEach((q) => pool.push(q));
     });
     pool = shuffle(pool);
-    const fakeWorld = {
-      id: "final",
-      name: "Examen final",
-      icon: "🏆",
-      color: "#d6336c",
-    };
+    const fakeWorld = { id: "final", name: "Examen final", icon: "🏆", color: "#d6336c" };
     startRound(fakeWorld, { questions: pool, isFinal: true });
   }
 
