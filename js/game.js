@@ -74,6 +74,7 @@
     perfectWorlds: {}, // worldId -> true (ronda sin perder vidas)
     dailyCount: 0, // desafíos diarios completados
     finalPassed: false, // examen final superado (>=80%)
+    firstPlay: "", // YYYY-MM-DD del primer día jugado (el diario sale al día siguiente)
   });
 
   let state = loadState();
@@ -255,8 +256,59 @@
     window.scrollTo(0, 0);
   }
 
-  function header() {
+  // Chip que sirve de dos cosas: muestra el nivel y se rellena (naranja Claude)
+  // con el progreso de XP hacia el siguiente nivel. El texto sobre la zona
+  // rellenada se ve en blanco.
+  function xpChipHtml() {
     const lv = level(state.xp);
+    const pct = lv.into; // 0..99
+    const label = `Lv.${lv.lvl} · ${lv.title}`;
+    return `<div class="xpchip" id="xpChip" title="Nivel ${lv.lvl}: ${lv.title} · ${pct}/100 XP">
+        <div class="xpchip-fill" style="width:${pct}%"></div>
+        <span class="xpchip-lbl">${label}</span>
+        <span class="xpchip-lbl white" style="clip-path:inset(0 ${100 - pct}% 0 0)">${label}</span>
+      </div>`;
+  }
+
+  // Actualiza la chip de XP en vivo (sin re-renderizar la cabecera).
+  function updateXpChip() {
+    const chip = document.querySelector("#xpChip");
+    if (!chip) return;
+    const lv = level(state.xp);
+    const pct = lv.into;
+    const label = `Lv.${lv.lvl} · ${lv.title}`;
+    const fill = chip.querySelector(".xpchip-fill");
+    const base = chip.querySelector(".xpchip-lbl:not(.white)");
+    const white = chip.querySelector(".xpchip-lbl.white");
+    const leveled = base && base.textContent.trim() !== label;
+    chip.title = `Nivel ${lv.lvl}: ${lv.title} · ${pct}/100 XP`;
+    if (leveled) {
+      // Se llena del todo, sube de nivel y se reinicia.
+      fill.style.width = "100%";
+      white.style.clipPath = "inset(0 0 0 0)";
+      setTimeout(() => {
+        base.textContent = label;
+        white.textContent = label;
+        fill.style.transition = "none";
+        white.style.transition = "none";
+        fill.style.width = "0%";
+        white.style.clipPath = "inset(0 100% 0 0)";
+        requestAnimationFrame(() => {
+          fill.style.transition = "";
+          white.style.transition = "";
+          fill.style.width = pct + "%";
+          white.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
+        });
+        toast(icon("bolt", { size: 16 }) + ` ¡Nivel ${lv.lvl}: ${lv.title}!`);
+        confetti();
+      }, 520);
+    } else {
+      fill.style.width = pct + "%";
+      white.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
+    }
+  }
+
+  function header() {
     const h = el("div", "topbar");
     const streakChip =
       state.streakDays > 0
@@ -266,8 +318,7 @@
       <div class="brand" id="homeBtn">${icon("cap", { size: 22 })} <span>Claude Academy</span></div>
       <div class="stats">
         ${streakChip}
-        <div class="chip" title="Experiencia">${icon("star", { size: 15 })} ${state.xp}</div>
-        <div class="chip" title="Nivel: ${lv.title}">Lv.${lv.lvl}</div>
+        ${xpChipHtml()}
         <div class="chip link" id="soundBtn" title="Sonido">${icon(state.muted ? "volumeOff" : "volume", { size: 16 })}</div>
         <div class="chip link" id="storyBtn" title="Modo historia">${icon(state.storyMode ? "book" : "bookOff", { size: 16 })}</div>
         <div class="chip link" id="scoresBtn" title="Puntuaciones">${icon("trophy", { size: 16 })}</div>
@@ -353,6 +404,11 @@
   /* ----------------------------- Mapa ------------------------------- */
 
   function renderMap() {
+    // Marca el primer día jugado (el desafío diario se desbloquea al siguiente).
+    if (!state.firstPlay) {
+      state.firstPlay = todayStr();
+      saveState();
+    }
     const view = el("div", "view");
     view.appendChild(header());
 
@@ -375,13 +431,17 @@
       ${progressBlock}`;
     view.appendChild(hero);
 
-    // Desafío diario.
+    // Desafío diario: se desbloquea al día siguiente del primer juego.
     const daily = el("div", "daily");
     const doneToday = state.dailyDone === todayStr();
-    daily.innerHTML = doneToday
-      ? `<span>${icon("circleCheck", { size: 18 })} Desafío diario completado hoy. ¡Vuelve mañana!</span>`
-      : `<div><strong>${icon("calendar", { size: 18 })} Desafío diario</strong><br><small>5 preguntas mezcladas · XP x2</small></div>`;
-    if (!doneToday) {
+    const available = state.firstPlay && todayStr() > state.firstPlay;
+    if (!available) {
+      daily.classList.add("soft");
+      daily.innerHTML = `<span>${icon("calendar", { size: 18 })} El desafío diario se desbloquea mañana.</span>`;
+    } else if (doneToday) {
+      daily.innerHTML = `<span>${icon("circleCheck", { size: 18 })} Desafío diario completado hoy. ¡Vuelve mañana!</span>`;
+    } else {
+      daily.innerHTML = `<div><strong>${icon("calendar", { size: 18 })} Desafío diario</strong><br><small>5 preguntas mezcladas · XP x2</small></div>`;
       const b = el("button", "primary", "Jugar ›");
       b.onclick = renderDaily;
       daily.appendChild(b);
@@ -761,6 +821,7 @@
       if (q.isBoss && !s.isFinal && !s.isDaily) state.bossWins[s.world.id] = true;
       beep("ok");
       floatXp(card, gain);
+      updateXpChip();
     } else {
       s.streak = 0;
       s.lives--;

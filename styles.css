@@ -88,6 +88,29 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 600; letter-spacing: -0.01e
 .chip.link { cursor: pointer; transition: border-color .2s, color .2s, background .2s; }
 .chip.link:hover { border-color: var(--clay); color: var(--clay); background: var(--clay-tint); }
 
+/* Chip de XP/nivel rellenable: el relleno naranja Claude marca el progreso
+   al siguiente nivel; el texto sobre el relleno se ve blanco. */
+.xpchip {
+  position: relative; overflow: hidden; display: inline-block;
+  border-radius: 999px; border: 1px solid var(--line); background: transparent;
+  vertical-align: middle;
+}
+.xpchip-fill {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 0;
+  background: var(--clay); z-index: 1;
+  transition: width .55s cubic-bezier(.2, .7, .2, 1);
+}
+.xpchip-lbl {
+  display: block; position: relative; z-index: 2;
+  padding: 6px 14px; font-size: 13px; font-weight: 700;
+  color: var(--ink-soft); white-space: nowrap;
+}
+.xpchip-lbl.white {
+  position: absolute; inset: 0; z-index: 3; color: #fff;
+  clip-path: inset(0 100% 0 0); pointer-events: none;
+  transition: clip-path .55s cubic-bezier(.2, .7, .2, 1);
+}
+
 /* ---------------- Hero (mapa) — sin caja ---------------- */
 .hero { text-align: center; margin: 8px 0 38px; }
 .hero h1 { margin: 0 0 8px; font-size: 42px; line-height: 1.1; }
@@ -289,6 +312,8 @@ button { font-family: var(--sans); font-size: 15px; font-weight: 600; }
 .daily small { color: var(--muted); }
 .daily span { color: var(--ink-soft); font-size: 15px; }
 .daily .primary { padding: 10px 20px; white-space: nowrap; }
+.daily.soft { background: transparent; border-style: dashed; opacity: .8; }
+.daily.soft span { color: var(--muted); }
 
 /* ---------------- Barra de lanzamiento ---------------- */
 .launch { margin-top: 4px; }
