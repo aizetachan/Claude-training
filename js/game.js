@@ -21,6 +21,38 @@
   const XP_PER_CORRECT = 10;
   const STREAK_BONUS = 5;
   const ROUND_SIZE = 8; // preguntas por ronda (más el jefe), muestreadas del banco.
+  const PERFECT_BONUS = 20; // XP extra por terminar una ronda sin perder vidas.
+  const LIFE_BONUS = 5; // XP por cada vida que sobra al acabar.
+
+  // Layout del mapa de mundos: "route" (sendero) o "grid" (tarjetas).
+  // Cambia a "grid" para revertir al diseño anterior en un solo sitio.
+  const MAP_LAYOUT = "route";
+
+  /* Logros: cada uno se evalúa contra el estado global. */
+  const ACHIEVEMENTS = [
+    { id: "first", icon: "rocket", name: "Primer despegue", desc: "Completa tu primera misión.", has: (s) => Object.keys(s.completed).length >= 1 },
+    { id: "perfect", icon: "heart", name: "Sin un rasguño", desc: "Termina una misión sin perder vidas.", has: (s) => Object.keys(s.perfectWorlds).length >= 1 },
+    { id: "boss1", icon: "alert", name: "Cazador de retos", desc: "Supera tu primer reto de lanzamiento.", has: (s) => Object.keys(s.bossWins).length >= 1 },
+    { id: "streak3", icon: "flame", name: "En racha", desc: "Juega 3 días seguidos.", has: (s) => s.streakDays >= 3 },
+    { id: "streak7", icon: "bolt", name: "Imparable", desc: "Juega 7 días seguidos.", has: (s) => s.streakDays >= 7 },
+    { id: "daily3", icon: "calendar", name: "Constante", desc: "Completa 3 desafíos diarios.", has: (s) => s.dailyCount >= 3 },
+    { id: "explorer", icon: "map", name: "Producto completo", desc: "Completa los 8 mundos.", has: (s) => GAME_DATA.worlds.every((w) => s.completed[w.id]) },
+    { id: "bossall", icon: "target", name: "Mata-jefes", desc: "Supera los 8 retos de lanzamiento.", has: (s) => Object.keys(s.bossWins).length >= GAME_DATA.worlds.length },
+    { id: "graduate", icon: "cap", name: "Graduado/a", desc: "Aprueba el examen final.", has: (s) => s.finalPassed },
+    { id: "mastery", icon: "trophy", name: "Maestría total", desc: "Logra 3 estrellas en los 8 mundos.", has: (s) => GAME_DATA.worlds.every((w) => s.completed[w.id] && s.completed[w.id].stars === 3) },
+  ];
+
+  function checkAchievements() {
+    const newly = [];
+    ACHIEVEMENTS.forEach((a) => {
+      if (!state.achievements.includes(a.id) && a.has(state)) {
+        state.achievements.push(a.id);
+        newly.push(a);
+      }
+    });
+    if (newly.length) saveState();
+    return newly;
+  }
 
   /* ----------------------------- Estado ----------------------------- */
 
@@ -37,6 +69,11 @@
     streakDays: 0,
     lastActive: "", // YYYY-MM-DD del último día con actividad
     dailyDone: "", // YYYY-MM-DD del último desafío diario completado
+    achievements: [], // ids de logros desbloqueados
+    bossWins: {}, // worldId -> true (reto de lanzamiento superado)
+    perfectWorlds: {}, // worldId -> true (ronda sin perder vidas)
+    dailyCount: 0, // desafíos diarios completados
+    finalPassed: false, // examen final superado (>=80%)
   });
 
   let state = loadState();
@@ -174,6 +211,39 @@
       t.classList.remove("show");
       setTimeout(() => t.remove(), 300);
     }, 1900);
+  }
+
+  // Contador que sube de `from` a `to` animado.
+  function animateCount(node, from, to, dur, prefix, suffix) {
+    prefix = prefix || "";
+    suffix = suffix || "";
+    const start = performance.now();
+    function step(now) {
+      const p = Math.min(1, (now - start) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      node.textContent = prefix + Math.round(from + (to - from) * eased) + suffix;
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  // "+X" flotante que sube y se desvanece sobre un elemento ancla.
+  function floatXp(anchor, amount) {
+    if (!anchor || !anchor.getBoundingClientRect) return;
+    const rect = anchor.getBoundingClientRect();
+    const f = el("div", "floatxp", "+" + amount);
+    f.style.left = rect.right - 24 + "px";
+    f.style.top = rect.top + 8 + "px";
+    document.body.appendChild(f);
+    setTimeout(() => f.classList.add("go"), 10);
+    setTimeout(() => f.remove(), 900);
+  }
+
+  // Celebra logros recién desbloqueados (toast en cadena).
+  function celebrateAchievements(list) {
+    list.forEach((a, i) => {
+      setTimeout(() => toast(icon("award", { size: 16 }) + " Logro: " + a.name), 600 + i * 1400);
+    });
   }
 
   /* ----------------------------- Navegación ------------------------- */
@@ -318,39 +388,7 @@
     }
     view.appendChild(daily);
 
-    const grid = el("div", "grid");
-    GAME_DATA.worlds.forEach((w, i) => {
-      const done = state.completed[w.id];
-      const unlocked = i <= state.unlockedIndex;
-      const card = el("div", "card" + (unlocked ? "" : " locked"));
-      card.style.setProperty("--accent", w.color);
-      const stars = done
-        ? "★★★".slice(0, done.stars) + "☆☆☆".slice(0, 3 - done.stars)
-        : "";
-      card.innerHTML = `
-        <div class="card-icon">${unlocked ? icon(w.icon, { size: 44 }) : icon("lock", { size: 40 })}</div>
-        <div class="card-body">
-          <h3>${i + 1}. ${w.name}</h3>
-          <p>${w.blurb}</p>
-          <div class="card-foot">
-            ${done ? `<span class="stars">${stars}</span><span class="pct">${done.best}%</span>` : `<span class="muted">${unlocked ? "Sin completar" : "Bloqueado"}</span>`}
-          </div>
-        </div>`;
-      if (unlocked) card.onclick = () => enterWorld(w);
-      grid.appendChild(card);
-    });
-
-    const finalCard = el("div", "card final" + (state.finalUnlocked ? "" : " locked"));
-    finalCard.style.setProperty("--accent", "#d6336c");
-    finalCard.innerHTML = `
-      <div class="card-icon">${state.finalUnlocked ? icon("trophy", { size: 44 }) : icon("lock", { size: 40 })}</div>
-      <div class="card-body">
-        <h3>Día del lanzamiento: Examen final</h3>
-        <p>${state.finalUnlocked ? "Preguntas mezcladas de todos los mundos. ¡Demuestra que tu producto está listo!" : "Completa los 8 mundos para desbloquearlo."}</p>
-      </div>`;
-    if (state.finalUnlocked) finalCard.onclick = renderFinal;
-    grid.appendChild(finalCard);
-    view.appendChild(grid);
+    view.appendChild(MAP_LAYOUT === "route" ? worldsRoute() : worldsGrid());
 
     const foot = el("div", "mapfoot");
     const replay = el("button", "reset", icon("movie", { size: 15 }) + " Ver intro");
@@ -367,6 +405,82 @@
     foot.appendChild(reset);
     view.appendChild(foot);
     render(view);
+  }
+
+  // Layout clásico: rejilla de tarjetas (revertir cambiando MAP_LAYOUT).
+  function worldsGrid() {
+    const grid = el("div", "grid");
+    GAME_DATA.worlds.forEach((w, i) => {
+      const done = state.completed[w.id];
+      const unlocked = i <= state.unlockedIndex;
+      const card = el("div", "card" + (unlocked ? "" : " locked"));
+      card.style.setProperty("--accent", w.color);
+      const stars = done ? "★★★".slice(0, done.stars) + "☆☆☆".slice(0, 3 - done.stars) : "";
+      card.innerHTML = `
+        <div class="card-icon">${unlocked ? icon(w.icon, { size: 44 }) : icon("lock", { size: 40 })}</div>
+        <div class="card-body">
+          <h3>${i + 1}. ${w.name}</h3>
+          <p>${w.blurb}</p>
+          <div class="card-foot">
+            ${done ? `<span class="stars">${stars}</span><span class="pct">${done.best}%</span>` : `<span class="muted">${unlocked ? "Sin completar" : "Bloqueado"}</span>`}
+          </div>
+        </div>`;
+      if (unlocked) card.onclick = () => enterWorld(w);
+      grid.appendChild(card);
+    });
+    const finalCard = el("div", "card final" + (state.finalUnlocked ? "" : " locked"));
+    finalCard.style.setProperty("--accent", "#d6336c");
+    finalCard.innerHTML = `
+      <div class="card-icon">${state.finalUnlocked ? icon("trophy", { size: 44 }) : icon("lock", { size: 40 })}</div>
+      <div class="card-body">
+        <h3>Día del lanzamiento: Examen final</h3>
+        <p>${state.finalUnlocked ? "Preguntas mezcladas de todos los mundos. ¡Demuestra que tu producto está listo!" : "Completa los 8 mundos para desbloquearlo."}</p>
+      </div>`;
+    if (state.finalUnlocked) finalCard.onclick = renderFinal;
+    grid.appendChild(finalCard);
+    return grid;
+  }
+
+  // Layout sendero: paradas conectadas hacia el lanzamiento.
+  function worldsRoute() {
+    const route = el("div", "route");
+    route.appendChild(el("div", "route-end route-top", icon("flag", { size: 16 }) + " Inicio"));
+
+    GAME_DATA.worlds.forEach((w, i) => {
+      const done = state.completed[w.id];
+      const unlocked = i <= state.unlockedIndex;
+      const stop = el(
+        "div",
+        "stop " + (i % 2 ? "right" : "left") + (unlocked ? "" : " locked") + (done ? " done" : "")
+      );
+      stop.style.setProperty("--accent", w.color);
+      const stars = done ? "★★★".slice(0, done.stars) + "☆☆☆".slice(0, 3 - done.stars) : "";
+      const status = done
+        ? `<span class="stars">${stars}</span> <span class="pct">${done.best}%</span>`
+        : unlocked
+        ? "Disponible"
+        : "Bloqueado";
+      stop.innerHTML = `
+        <div class="stop-node">${unlocked ? icon(w.icon, { size: 26 }) : icon("lock", { size: 22 })}</div>
+        <div class="stop-card">
+          <h3>${i + 1}. ${w.name}</h3>
+          <div class="stop-status">${status}</div>
+        </div>`;
+      if (unlocked) stop.onclick = () => enterWorld(w);
+      route.appendChild(stop);
+    });
+
+    const fin = el("div", "stop final " + (state.finalUnlocked ? "" : "locked"));
+    fin.style.setProperty("--accent", "#d6336c");
+    fin.innerHTML = `
+      <div class="stop-node big">${state.finalUnlocked ? icon("rocket", { size: 30 }) : icon("lock", { size: 24 })}</div>
+      <div class="stop-card">
+        <h3>Día del lanzamiento</h3>
+        <div class="stop-status">${state.finalUnlocked ? "Examen final disponible" : "Completa los 8 mundos"}</div>
+      </div>`;
+    if (state.finalUnlocked) fin.onclick = renderFinal;
+    route.appendChild(fin);
+    return route;
   }
 
   /* ----------------------------- Misión (story) --------------------- */
@@ -644,7 +758,9 @@
       const gain = (XP_PER_CORRECT + bonus) * (q.isBoss ? 2 : 1) * s.xpMult;
       s.gained += gain;
       state.xp += gain;
+      if (q.isBoss && !s.isFinal && !s.isDaily) state.bossWins[s.world.id] = true;
       beep("ok");
+      floatXp(card, gain);
     } else {
       s.streak = 0;
       s.lives--;
@@ -727,6 +843,7 @@
   function renderFail(s) {
     touchStreak();
     saveState();
+    const newAchievements = checkAchievements();
     const view = el("div", "view");
     view.appendChild(header());
     const r = el("div", "result");
@@ -744,6 +861,7 @@
     r.appendChild(home);
     view.appendChild(r);
     render(view);
+    if (newAchievements.length) celebrateAchievements(newAchievements);
   }
 
   function retry(s) {
@@ -753,9 +871,18 @@
   }
 
   function renderResult(s) {
+    const prevLaunch = launchPct();
     const pct = Math.round((s.correct / s.questions.length) * 100);
     const stars = pct === 100 ? 3 : pct >= 80 ? 2 : pct >= 60 ? 1 : 0;
     const secs = Math.round((Date.now() - s.startTime) / 1000);
+
+    // Bonus por vidas: ronda perfecta (sin fallos) + XP por vida restante.
+    const isPerfect = s.wrong.length === 0 && s.lives === LIVES_PER_ROUND;
+    const lifeBonus = s.lives * LIFE_BONUS + (isPerfect ? PERFECT_BONUS : 0);
+    if (lifeBonus > 0) {
+      s.gained += lifeBonus;
+      state.xp += lifeBonus;
+    }
 
     touchStreak();
 
@@ -774,11 +901,15 @@
 
     let unlockedNext = false;
     if (s.isDaily) {
+      if (state.dailyDone !== todayStr()) state.dailyCount++;
       state.dailyDone = todayStr();
-    } else if (!s.isFinal) {
+    } else if (s.isFinal) {
+      if (pct >= 80) state.finalPassed = true;
+    } else {
       const prev = state.completed[s.world.id];
       if (!prev || pct > prev.best) state.completed[s.world.id] = { best: pct, stars };
       else if (stars > prev.stars) prev.stars = stars;
+      if (isPerfect) state.perfectWorlds[s.world.id] = true;
       const idx = GAME_DATA.worlds.findIndex((w) => w.id === s.world.id);
       if (stars >= 1 && idx === state.unlockedIndex) {
         state.unlockedIndex = Math.min(state.unlockedIndex + 1, GAME_DATA.worlds.length - 1);
@@ -788,6 +919,7 @@
         state.finalUnlocked = true;
     }
     saveState();
+    const newAchievements = checkAchievements();
 
     const celebrate = stars >= 2 || (s.isFinal && pct >= 80) || (s.isDaily && pct >= 80);
     if (celebrate) confetti();
@@ -809,15 +941,22 @@
       <h2>${title}</h2>
       <div class="result-stars">${starStr}</div>
       <p class="big">${s.correct}/${s.questions.length} aciertos · ${pct}%</p>
-      <p>+${s.gained} XP${s.isDaily ? " (x2)" : ""} · ⏱ ${fmtTime(secs)}</p>`;
+      <p><span class="xpgain" id="xpGain">+0 XP</span>${s.isDaily ? " (x2)" : ""} · ⏱ ${fmtTime(secs)}</p>`;
 
-    // Outcome narrativo + progreso de lanzamiento.
+    if (isPerfect)
+      r.appendChild(el("div", "perfect", icon("heart", { size: 16, fill: true }) + ` ¡Ronda perfecta! +${PERFECT_BONUS} XP de bonus`));
+    else if (lifeBonus > 0)
+      r.appendChild(el("div", "perfect soft", icon("heart", { size: 16, fill: true }) + ` +${lifeBonus} XP por vidas restantes`));
+
+    // Outcome narrativo + progreso de lanzamiento (barra animada).
+    let launchFill = null;
     if (state.storyMode && !s.isFinal && !s.isDaily && stars >= 1 && s.world.outcome) {
       const out = el("div", "outcome");
       out.innerHTML = `<div class="outcome-line">${s.world.outcome}</div>
-        <div class="launch-label">${icon("rocket", { size: 16 })} Progreso de lanzamiento: ${launchPct()}%</div>
-        <div class="xpbar"><div class="xpfill" style="width:${launchPct()}%"></div></div>`;
+        <div class="launch-label">${icon("rocket", { size: 16 })} Progreso de lanzamiento: <span id="launchNum">${prevLaunch}</span>%</div>
+        <div class="xpbar"><div class="xpfill" id="launchFill" style="width:${prevLaunch}%"></div></div>`;
       r.appendChild(out);
+      launchFill = out;
     }
     if (unlockedNext)
       r.appendChild(el("div", "unlocked", icon("circleCheck", { size: 16 }) + " ¡Nueva capacidad desbloqueada!"));
@@ -848,6 +987,25 @@
 
     view.appendChild(r);
     render(view);
+
+    // Animaciones de recompensa.
+    const xpNode = document.querySelector("#xpGain");
+    if (xpNode) animateCount(xpNode, 0, s.gained, 900, "+", " XP");
+    const newLaunch = launchPct();
+    if (launchFill && newLaunch !== prevLaunch) {
+      const fill = document.querySelector("#launchFill");
+      const num = document.querySelector("#launchNum");
+      setTimeout(() => {
+        if (fill) fill.style.width = newLaunch + "%";
+        if (num) animateCount(num, prevLaunch, newLaunch, 800, "", "");
+      }, 350);
+    }
+
+    // Celebrar logros recién desbloqueados.
+    if (newAchievements.length) {
+      if (!celebrate) confetti();
+      celebrateAchievements(newAchievements);
+    }
   }
 
   /* ----------------------------- Compartir -------------------------- */
@@ -888,7 +1046,24 @@
     const view = el("div", "view");
     view.appendChild(header());
     const box = el("div", "scorebox");
-    box.appendChild(el("h2", null, "🏅 Tabla de puntuaciones"));
+    box.appendChild(el("h2", null, icon("trophy", { size: 26 }) + " Tu progreso"));
+
+    // Logros.
+    const unlockedCount = state.achievements.length;
+    box.appendChild(
+      el("h3", null, `${icon("award", { size: 15 })} Logros (${unlockedCount}/${ACHIEVEMENTS.length})`)
+    );
+    const badges = el("div", "badges");
+    ACHIEVEMENTS.forEach((a) => {
+      const got = state.achievements.includes(a.id);
+      const b = el("div", "badge" + (got ? "" : " locked"));
+      b.innerHTML = `
+        <div class="badge-ic">${icon(got ? a.icon : "lock", { size: 24 })}</div>
+        <div class="badge-name">${a.name}</div>
+        <div class="badge-desc">${a.desc}</div>`;
+      badges.appendChild(b);
+    });
+    box.appendChild(badges);
 
     const nameRow = el("div", "name-row");
     nameRow.innerHTML = `

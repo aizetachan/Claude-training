@@ -75,6 +75,12 @@
       '<path d="M7 11v9H4a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1z"/><path d="M7 11l4-7a2 2 0 0 1 2 2v3h5a2 2 0 0 1 2 2.3l-1.2 6A2 2 0 0 1 18 20H7"/>',
     heart:
       '<path d="M12 20l-7.5-7.2a4.6 4.6 0 0 1 6.5-6.5l1 1 1-1a4.6 4.6 0 0 1 6.5 6.5z"/>',
+    flag: '<path d="M5 21V4"/><path d="M5 4h12l-2.5 4L17 12H5"/>',
+    award:
+      '<circle cx="12" cy="9" r="6"/><path d="M9 14.2 7.5 21 12 18.5 16.5 21 15 14.2"/>',
+    bolt: '<path d="M13 3 4 14h7l-1 7 9-11h-7z"/>',
+    target:
+      '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
   };
 
   function icon(name, opts) {
