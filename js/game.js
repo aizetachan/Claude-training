@@ -469,8 +469,11 @@
 
     const bar = el("div", "qtop");
     bar.style.setProperty("--accent", s.world.color);
+    const hearts =
+      icon("heart", { size: 18, fill: true, cls: "hp-on" }).repeat(s.lives) +
+      icon("heart", { size: 18, cls: "hp-off" }).repeat(LIVES_PER_ROUND - s.lives);
     bar.innerHTML = `
-      <div class="lives">${"❤️".repeat(s.lives)}${"🤍".repeat(LIVES_PER_ROUND - s.lives)}</div>
+      <div class="lives">${hearts}</div>
       <div class="progress"><div class="pfill" style="width:${(s.i / s.questions.length) * 100}%"></div></div>
       <div class="counter">${s.i + 1}/${s.questions.length}</div>`;
     view.appendChild(bar);

@@ -491,6 +491,11 @@ button { font-family: var(--sans); font-size: 15px; font-weight: 600; }
 .cine-icon { color: var(--clay); }
 .boss-flash { color: var(--clay); }
 
+/* Vidas (corazones) */
+.lives { display: inline-flex; gap: 4px; align-items: center; }
+.lives .hp-on { color: var(--no); }
+.lives .hp-off { color: var(--line); }
+
 /* Resultado */
 .result-emoji { color: var(--clay); }
 .result-emoji.sad { color: var(--no); }
