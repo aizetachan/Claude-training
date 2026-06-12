@@ -449,6 +449,7 @@ button { font-family: var(--sans); font-size: 15px; font-weight: 600; }
   max-width: 46ch;
 }
 .cine-scene .dots { margin-top: 28px; }
+.cine-scene .dot.on { background: var(--clay); }
 .cine-nav {
   display: flex; justify-content: center; gap: 12px; margin-top: 30px; flex-wrap: wrap;
 }
