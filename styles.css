@@ -470,6 +470,34 @@ button { font-family: var(--sans); font-size: 15px; font-weight: 600; }
   pointer-events: none; z-index: 9998;
 }
 
+/* ---------------- Iconos (SVG inline, estilo línea redondeada) ---------------- */
+:root { --gold: #d6a35c; }
+.ic { display: inline-block; vertical-align: -0.18em; flex-shrink: 0; }
+.brand .ic { color: var(--clay); vertical-align: -0.22em; }
+.chip .ic { vertical-align: -0.22em; }
+.feedback strong .ic,
+.launch-label .ic,
+.outcome .ic,
+.unlocked .ic,
+.daily .ic,
+.mistakes h3 .ic,
+.bossbanner .ic,
+.qtag .ic { vertical-align: -0.2em; }
+.primary .ic, .ghost .ic, .reset .ic { vertical-align: -0.2em; }
+
+/* Iconos de mundo: heredan el color del mundo, sobre su bloque tintado */
+.card-icon { color: var(--accent); }
+.mission-icon { color: var(--accent); }
+.cine-icon { color: var(--clay); }
+.boss-flash { color: var(--clay); }
+
+/* Resultado */
+.result-emoji { color: var(--clay); }
+.result-emoji.sad { color: var(--no); }
+.result-stars { display: flex; gap: 7px; justify-content: center; letter-spacing: 0; }
+.result-stars .st-on { color: var(--gold); }
+.result-stars .st-off { color: var(--line); }
+
 /* ---------------- Footer ---------------- */
 .site-foot { text-align: center; color: var(--muted); font-size: 12.5px; padding: 28px 20px; }
 .site-foot a { color: var(--clay); text-decoration: none; }

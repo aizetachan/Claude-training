@@ -190,30 +190,30 @@
     const h = el("div", "topbar");
     const streakChip =
       state.streakDays > 0
-        ? `<div class="chip" title="Días seguidos jugando">🔥 ${state.streakDays}</div>`
+        ? `<div class="chip" title="Días seguidos jugando">${icon("flame", { size: 15 })} ${state.streakDays}</div>`
         : "";
     h.innerHTML = `
-      <div class="brand" id="homeBtn">🎓 <span>Claude Academy</span></div>
+      <div class="brand" id="homeBtn">${icon("cap", { size: 22 })} <span>Claude Academy</span></div>
       <div class="stats">
         ${streakChip}
-        <div class="chip" title="Experiencia">⭐ ${state.xp}</div>
+        <div class="chip" title="Experiencia">${icon("star", { size: 15 })} ${state.xp}</div>
         <div class="chip" title="Nivel: ${lv.title}">Lv.${lv.lvl}</div>
-        <div class="chip link" id="soundBtn" title="Sonido">${state.muted ? "🔇" : "🔊"}</div>
-        <div class="chip link" id="storyBtn" title="Modo historia">${state.storyMode ? "📖" : "📕"}</div>
-        <div class="chip link" id="scoresBtn" title="Puntuaciones">🏅</div>
+        <div class="chip link" id="soundBtn" title="Sonido">${icon(state.muted ? "volumeOff" : "volume", { size: 16 })}</div>
+        <div class="chip link" id="storyBtn" title="Modo historia">${icon(state.storyMode ? "book" : "bookOff", { size: 16 })}</div>
+        <div class="chip link" id="scoresBtn" title="Puntuaciones">${icon("trophy", { size: 16 })}</div>
       </div>`;
     h.querySelector("#homeBtn").onclick = renderMap;
     h.querySelector("#scoresBtn").onclick = renderScores;
     h.querySelector("#soundBtn").onclick = function () {
       state.muted = !state.muted;
       saveState();
-      this.textContent = state.muted ? "🔇" : "🔊";
+      this.innerHTML = icon(state.muted ? "volumeOff" : "volume", { size: 16 });
       if (!state.muted) beep("ok");
     };
     h.querySelector("#storyBtn").onclick = function () {
       state.storyMode = !state.storyMode;
       saveState();
-      this.textContent = state.storyMode ? "📖" : "📕";
+      this.innerHTML = icon(state.storyMode ? "book" : "bookOff", { size: 16 });
       toast(state.storyMode ? "Modo historia activado" : "Modo historia desactivado");
     };
     return h;
@@ -223,22 +223,22 @@
 
   const INTRO_SLIDES = [
     {
-      icon: "🌆",
+      icon: "building",
       title: "Bienvenido/a al estudio",
       text: "Las mejores ideas de hoy se construyen con IA. Acabas de unirte como builder a un pequeño estudio con una gran ambición.",
     },
     {
-      icon: "💡",
+      icon: "bulb",
       title: "Tu misión",
       text: "Construir y LANZAR tu propio producto de IA: un asistente que hable, responda con precisión, use herramientas y llegue a producción.",
     },
     {
-      icon: "🗺️",
+      icon: "map",
       title: "El camino",
       text: "Cada mundo te entrena en una capacidad real de Claude: entender el modelo, la API, RAG, agentes, Claude Code, MCP… Las mismas que usan los equipos profesionales.",
     },
     {
-      icon: "🚀",
+      icon: "rocket",
       title: "El reto",
       text: "Al final de cada mundo, un RETO DE LANZAMIENTO pondrá a prueba tu producto con un caso real. Supéralos todos y llegarás al día del lanzamiento.",
     },
@@ -250,7 +250,7 @@
     const view = el("div", "view cine");
     const sc = el("div", "cine-scene");
     sc.innerHTML = `
-      <div class="cine-icon">${slide.icon}</div>
+      <div class="cine-icon">${icon(slide.icon, { size: 64 })}</div>
       <h2>${slide.title}</h2>
       <p>${slide.text}</p>`;
     const dots = el("div", "dots");
@@ -291,7 +291,7 @@
     const lp = launchPct();
     const progressBlock = state.storyMode
       ? `<div class="launch">
-           <div class="launch-label">🚀 Progreso de lanzamiento de tu producto</div>
+           <div class="launch-label">${icon("rocket", { size: 16 })} Progreso de lanzamiento de tu producto</div>
            <div class="xpbar"><div class="xpfill" style="width:${lp}%"></div></div>
            <small>${lp}% · ${
              lp === 100 ? "¡Producto lanzado! 🎉" : "Completa mundos para acercarte al lanzamiento"
@@ -309,8 +309,8 @@
     const daily = el("div", "daily");
     const doneToday = state.dailyDone === todayStr();
     daily.innerHTML = doneToday
-      ? `<span>✅ Desafío diario completado hoy. ¡Vuelve mañana!</span>`
-      : `<div><strong>📅 Desafío diario</strong><br><small>5 preguntas mezcladas · XP x2</small></div>`;
+      ? `<span>${icon("circleCheck", { size: 18 })} Desafío diario completado hoy. ¡Vuelve mañana!</span>`
+      : `<div><strong>${icon("calendar", { size: 18 })} Desafío diario</strong><br><small>5 preguntas mezcladas · XP x2</small></div>`;
     if (!doneToday) {
       const b = el("button", "primary", "Jugar ›");
       b.onclick = renderDaily;
@@ -328,7 +328,7 @@
         ? "★★★".slice(0, done.stars) + "☆☆☆".slice(0, 3 - done.stars)
         : "";
       card.innerHTML = `
-        <div class="card-icon">${unlocked ? w.icon : "🔒"}</div>
+        <div class="card-icon">${unlocked ? icon(w.icon, { size: 44 }) : icon("lock", { size: 40 })}</div>
         <div class="card-body">
           <h3>${i + 1}. ${w.name}</h3>
           <p>${w.blurb}</p>
@@ -343,7 +343,7 @@
     const finalCard = el("div", "card final" + (state.finalUnlocked ? "" : " locked"));
     finalCard.style.setProperty("--accent", "#d6336c");
     finalCard.innerHTML = `
-      <div class="card-icon">${state.finalUnlocked ? "🏆" : "🔒"}</div>
+      <div class="card-icon">${state.finalUnlocked ? icon("trophy", { size: 44 }) : icon("lock", { size: 40 })}</div>
       <div class="card-body">
         <h3>Día del lanzamiento: Examen final</h3>
         <p>${state.finalUnlocked ? "Preguntas mezcladas de todos los mundos. ¡Demuestra que tu producto está listo!" : "Completa los 8 mundos para desbloquearlo."}</p>
@@ -353,9 +353,9 @@
     view.appendChild(grid);
 
     const foot = el("div", "mapfoot");
-    const replay = el("button", "reset", "🎬 Ver intro");
+    const replay = el("button", "reset", icon("movie", { size: 15 }) + " Ver intro");
     replay.onclick = () => renderIntro(0);
-    const reset = el("button", "reset", "↺ Reiniciar progreso");
+    const reset = el("button", "reset", icon("refresh", { size: 15 }) + " Reiniciar progreso");
     reset.onclick = () => {
       if (confirm("¿Borrar todo tu progreso?")) {
         state = defaultState();
@@ -383,7 +383,7 @@
     m.style.setProperty("--accent", world.color);
     const idx = GAME_DATA.worlds.findIndex((w) => w.id === world.id);
     m.innerHTML = `
-      <div class="mission-icon">${world.icon}</div>
+      <div class="mission-icon">${icon(world.icon, { size: 52 })}</div>
       <div class="mission-tag">Misión ${idx + 1} de ${GAME_DATA.worlds.length}</div>
       <h2>${world.name}</h2>
       <p>${world.mission}</p>`;
@@ -409,7 +409,7 @@
     const wrap = el("div", "lesson");
     wrap.style.setProperty("--accent", world.color);
     wrap.innerHTML = `
-      <div class="lesson-tag">${world.icon} ${world.name} · Lección ${idx + 1}/${world.lessons.length}</div>
+      <div class="lesson-tag">${icon(world.icon, { size: 15 })} ${world.name} · Lección ${idx + 1}/${world.lessons.length}</div>
       <h2>${lesson.title}</h2>
       <p>${lesson.body}</p>`;
     const nav = el("div", "lesson-nav");
@@ -477,14 +477,15 @@
 
     const card = el("div", "qcard");
     card.style.setProperty("--accent", s.world.color);
-    if (q.isBoss) card.appendChild(el("div", "bossbanner", "🚀 Reto de lanzamiento"));
+    if (q.isBoss)
+      card.appendChild(el("div", "bossbanner", icon("rocket", { size: 15 }) + " Reto de lanzamiento"));
     const tag = q.isBoss
-      ? "🚀 Reto de lanzamiento"
+      ? icon("rocket", { size: 16 }) + " Reto de lanzamiento"
       : s.isFinal
-      ? "🏆 Examen final"
+      ? icon("trophy", { size: 16 }) + " Examen final"
       : s.isDaily
-      ? "📅 Desafío diario"
-      : `${s.world.icon} ${s.world.name}`;
+      ? icon("calendar", { size: 16 }) + " Desafío diario"
+      : `${icon(s.world.icon, { size: 16 })} ${s.world.name}`;
     card.appendChild(el("div", "qtag", tag));
     card.appendChild(el("h2", "qtext", q.q));
 
@@ -651,9 +652,9 @@
 
     const fb = el("div", "feedback " + (correct ? "ok" : "no"));
     fb.innerHTML = `
-      <strong>${correct ? "✔ ¡Correcto!" : "✘ Casi"}</strong>
+      <strong>${icon(correct ? "check" : "x", { size: 17 })} ${correct ? "¡Correcto!" : "Casi"}</strong>
       <span>${q.explain}</span>
-      ${correct && s.streak >= 2 ? `<em class="streak">🔥 Racha x${s.streak} (+${STREAK_BONUS} bonus)</em>` : ""}`;
+      ${correct && s.streak >= 2 ? `<em class="streak">${icon("flame", { size: 14 })} Racha x${s.streak} (+${STREAK_BONUS} bonus)</em>` : ""}`;
     card.appendChild(fb);
 
     const last = s.i >= s.questions.length - 1;
@@ -681,9 +682,9 @@
     const b = el("div", "bossintro");
     b.style.setProperty("--accent", s.world.color);
     b.innerHTML = `
-      <div class="boss-flash">⚠️</div>
+      <div class="boss-flash">${icon("alert", { size: 56 })}</div>
       <div class="mission-tag">Fase final del mundo</div>
-      <h2>🚀 Reto de lanzamiento</h2>
+      <h2>${icon("rocket", { size: 30 })} Reto de lanzamiento</h2>
       <p>Has completado el entrenamiento de <strong>${s.world.name}</strong>.
       Ahora un escenario real pone a prueba tu producto: no es teoría, es lo que
       te encontrarás construyendo de verdad.</p>
@@ -700,7 +701,7 @@
   function mistakesBlock(s) {
     if (!s.wrong.length) return null;
     const box = el("div", "mistakes");
-    box.appendChild(el("h3", null, `📌 Repaso de tus ${s.wrong.length} fallo(s)`));
+    box.appendChild(el("h3", null, `${icon("bookmark", { size: 15 })} Repaso de tus ${s.wrong.length} fallo(s)`));
     s.wrong.forEach((w) => {
       const it = el("div", "mistake");
       it.innerHTML = `<div class="mq">${w.q}</div><div class="me">${w.explain}</div>`;
@@ -727,12 +728,12 @@
     view.appendChild(header());
     const r = el("div", "result");
     r.innerHTML = `
-      <div class="result-emoji">💔</div>
+      <div class="result-emoji sad">${icon("heartBroken", { size: 56 })}</div>
       <h2>Te quedaste sin vidas</h2>
       <p>Llegaste a la pregunta ${s.i + 1} de ${s.questions.length}. Repasa y vuelve a intentarlo.</p>`;
     const mb = mistakesBlock(s);
     if (mb) r.appendChild(mb);
-    const again = el("button", "primary wide", "↺ Reintentar");
+    const again = el("button", "primary wide", icon("refresh", { size: 16 }) + " Reintentar");
     again.onclick = () => retry(s);
     const home = el("button", "ghost wide", "Volver al mapa");
     home.onclick = renderMap;
@@ -791,8 +792,10 @@
     const view = el("div", "view");
     view.appendChild(header());
     const r = el("div", "result");
-    const emoji = stars === 3 ? "🏆" : stars === 2 ? "🎉" : stars >= 1 ? "👍" : "📚";
-    const starStr = "★★★".slice(0, stars) + "☆☆☆".slice(0, 3 - stars);
+    const emojiName = stars === 3 ? "trophy" : stars === 2 ? "star" : stars >= 1 ? "thumbUp" : "book";
+    const emoji = icon(emojiName, { size: 56, fill: stars === 2 });
+    const starStr =
+      [0, 1, 2].map((i) => icon("star", { size: 26, fill: i < stars, cls: i < stars ? "st-on" : "st-off" })).join("");
     const title = s.isFinal
       ? "Día del lanzamiento"
       : s.isDaily
@@ -809,14 +812,20 @@
     if (state.storyMode && !s.isFinal && !s.isDaily && stars >= 1 && s.world.outcome) {
       const out = el("div", "outcome");
       out.innerHTML = `<div class="outcome-line">${s.world.outcome}</div>
-        <div class="launch-label">🚀 Progreso de lanzamiento: ${launchPct()}%</div>
+        <div class="launch-label">${icon("rocket", { size: 16 })} Progreso de lanzamiento: ${launchPct()}%</div>
         <div class="xpbar"><div class="xpfill" style="width:${launchPct()}%"></div></div>`;
       r.appendChild(out);
     }
-    if (unlockedNext) r.appendChild(el("div", "unlocked", "🔓 ¡Nueva capacidad desbloqueada!"));
+    if (unlockedNext)
+      r.appendChild(el("div", "unlocked", icon("circleCheck", { size: 16 }) + " ¡Nueva capacidad desbloqueada!"));
     if (s.isFinal && pct >= 80)
       r.appendChild(
-        el("div", "diploma", "🎓 ¡Felicidades! Tu producto está en producción. Has demostrado maestría en los cursos de Claude.")
+        el(
+          "div",
+          "diploma",
+          icon("cap", { size: 20 }) +
+            " ¡Felicidades! Tu producto está en producción. Has demostrado maestría en los cursos de Claude."
+        )
       );
 
     const mb = mistakesBlock(s);
@@ -826,11 +835,11 @@
     home.onclick = renderMap;
     r.appendChild(home);
 
-    const share = el("button", "ghost wide", "📋 Compartir mi resultado");
+    const share = el("button", "ghost wide", icon("clipboard", { size: 16 }) + " Compartir mi resultado");
     share.onclick = () => doShare(s, pct, stars);
     r.appendChild(share);
 
-    const again = el("button", "ghost wide", "↺ Reintentar");
+    const again = el("button", "ghost wide", icon("refresh", { size: 16 }) + " Reintentar");
     again.onclick = () => retry(s);
     r.appendChild(again);
 
@@ -897,7 +906,7 @@
       const done = state.completed[w.id];
       const tr = el("tr");
       tr.innerHTML = `
-        <td>${w.icon} ${w.name}</td>
+        <td>${icon(w.icon, { size: 15 })} ${w.name}</td>
         <td>${done ? done.best + "%" : "—"}</td>
         <td class="stars">${done ? "★★★".slice(0, done.stars) + "☆☆☆".slice(0, 3 - done.stars) : "—"}</td>`;
       bests.appendChild(tr);
@@ -917,7 +926,7 @@
         const tr = el("tr", r.final ? "finalrow" : null);
         tr.innerHTML = `
           <td>${medal}</td><td>${r.name}</td>
-          <td>${r.icon} ${r.final ? "<strong>Final</strong>" : r.worldName}</td>
+          <td>${icon(r.icon || "trophy", { size: 15 })} ${r.final ? "<strong>Final</strong>" : r.worldName}</td>
           <td>${r.pct}%</td><td>+${r.xp}</td><td>${fmtTime(r.secs)}</td>`;
         t.appendChild(tr);
       });
@@ -939,7 +948,7 @@
       shuffle(w.questions).slice(0, 3).forEach((q) => pool.push(q));
     });
     pool = shuffle(pool).slice(0, 5);
-    const dailyWorld = { id: "daily", name: "Desafío diario", icon: "📅", color: "#c15f3c" };
+    const dailyWorld = { id: "daily", name: "Desafío diario", icon: "calendar", color: "#c15f3c" };
     startRound(dailyWorld, { questions: pool, isDaily: true, xpMult: 2 });
   }
 
@@ -949,7 +958,7 @@
       shuffle(w.questions).slice(0, 2).forEach((q) => pool.push(q));
     });
     pool = shuffle(pool);
-    const fakeWorld = { id: "final", name: "Examen final", icon: "🏆", color: "#d6336c" };
+    const fakeWorld = { id: "final", name: "Examen final", icon: "trophy", color: "#d6336c" };
     startRound(fakeWorld, { questions: pool, isFinal: true });
   }
 

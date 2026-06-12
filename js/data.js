@@ -37,7 +37,7 @@ const GAME_DATA = {
     {
       id: "fundamentals",
       name: "Fundamentos de Claude",
-      icon: "🌱",
+      icon: "seedling",
       color: "#7c5cff",
       blurb:
         "Qué es Claude y cómo 'piensa' un modelo generativo: predicción de tokens, conocimiento, memoria de trabajo y steerability. Más proyectos, artifacts y Research en Claude.ai.",
@@ -208,7 +208,7 @@ const GAME_DATA = {
     {
       id: "fluency",
       name: "AI Fluency: el marco 4D",
-      icon: "🧭",
+      icon: "compass",
       color: "#00b3a4",
       blurb:
         "Delegation, Description, Discernment y Diligence; los bucles Description-Discernment y Delegation-Diligence; ser 'el humano en el bucle'. Cubre toda la familia AI Fluency.",
@@ -381,7 +381,7 @@ const GAME_DATA = {
     {
       id: "api",
       name: "La Claude API: fundamentos",
-      icon: "🔌",
+      icon: "plug",
       color: "#ff7a45",
       blurb:
         "La Messages API: peticiones, multi-turno, system prompts, tokens, temperature, streaming, datos estructurados, visión, PDF, citations, extended thinking y prompt caching.",
@@ -569,7 +569,7 @@ const GAME_DATA = {
     {
       id: "prompting",
       name: "Prompting, evals y RAG",
-      icon: "✍️",
+      icon: "pencil",
       color: "#e64980",
       blurb:
         "Técnicas de prompt engineering (claridad, XML tags, ejemplos), evaluación sistemática de prompts y Retrieval Augmented Generation: chunking, embeddings, BM25 y reranking.",
@@ -762,7 +762,7 @@ const GAME_DATA = {
     {
       id: "agents",
       name: "Tool use y agentes",
-      icon: "🤖",
+      icon: "robot",
       color: "#f59f00",
       blurb:
         "Cómo Claude usa herramientas (JSON Schema, tool_use/tool_result), el agent loop, workflows vs. agentes (chaining, routing, parallelization), herramientas integradas y computer use.",
@@ -918,7 +918,7 @@ const GAME_DATA = {
     {
       id: "claudecode",
       name: "Claude Code en acción",
-      icon: "⌨️",
+      icon: "terminal",
       color: "#2f9e44",
       blurb:
         "El agente de programación: explore→plan→code→commit, gestión de contexto, CLAUDE.md, comandos personalizados, subagentes, skills, hooks, MCP, GitHub y el SDK.",
@@ -1118,7 +1118,7 @@ const GAME_DATA = {
     {
       id: "mcp",
       name: "Model Context Protocol",
-      icon: "🔗",
+      icon: "link",
       color: "#1971c2",
       blurb:
         "El estándar abierto que conecta IA con herramientas y datos: tools, resources y prompts; JSON-RPC; transportes stdio y StreamableHTTP; sampling, notificaciones y roots.",
@@ -1313,7 +1313,7 @@ const GAME_DATA = {
     {
       id: "deploy",
       name: "Despliegue cloud y Cowork",
-      icon: "☁️",
+      icon: "cloud",
       color: "#e8590c",
       blurb:
         "Claude en Amazon Bedrock (boto3, IAM) y Google Cloud Vertex AI; qué cambia y qué no entre plataformas; y Claude Cowork: tareas delegadas, skills, plugins y seguridad.",
